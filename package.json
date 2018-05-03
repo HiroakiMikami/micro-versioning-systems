@@ -1,0 +1,32 @@
+{
+  "private": true,
+  "name": "micro-versioning-systems",
+  "version": "0.0.1",
+  "description": "",
+  "main": "build/src/main.js",
+  "scripts": {
+    "compile": "$(npm bin)/tsc -p ./",
+    "doc": "$(npm bin)/typedoc --out doc ./src/",
+    "watch": "$(npm bin)/tsc -w -p ./",
+    "test": "$(npm bin)/mocha $(find ./out/test -name '*.js')"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/HiroakiMikami/micro-versioning-systems.git"
+  },
+  "author": "Hiroaki Mikami",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/HiroakiMikami/micro-versioning-systems/issues"
+  },
+  "homepage": "https://github.com/HiroakiMikami/micro-versioning-systems#readme",
+  "devDependencies": {
+    "@types/chai": "^4.1.3",
+    "@types/mocha": "^5.2.0",
+    "chai": "^4.1.2",
+    "mocha": "^5.1.1",
+    "typedoc": "^0.11.1",
+    "typemoq": "^2.1.0",
+    "typescript": "^2.8.3"
+  }
+}
