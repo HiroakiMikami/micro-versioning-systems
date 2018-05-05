@@ -28,6 +28,7 @@ describe('Delta', () => {
         })
     })
     describe('#interval', () => {
+        ConstrainedData.mode = ExecutionMode.Debug
         it('return the range to be deleted', () => {
             new Delta(0, "xx", "").interval().should.deep.equal(new Interval(0, 2))
             new Delta(0, "xx", "x").interval().should.deep.equal(new Interval(0, 2))
@@ -56,6 +57,7 @@ describe('Diff', () => {
     })
 
     describe('#inverse', () => {
+        ConstrainedData.mode = ExecutionMode.Debug
         it('swap remove and insert of each delta', () => {
             const orig = new Diff([new Delta(0, "x", "y"), new Delta(2, "s", "t")])
             const inverse = orig.inverse()
@@ -77,12 +79,13 @@ describe('Diff', () => {
     })
 
     describe('#rebase', () => {
+        ConstrainedData.mode = ExecutionMode.Debug
         it('return the same diff it the base is empty diff', () => {
             const target = new Diff([new Delta(1, "s", "ss"), new Delta(4, "tt", "t")])
             target.rebase(new Diff([])).should.deep.equal(target)
         })
-        const base = new Diff([new Delta(0, "x", "xx"), new Delta(2, "yy", "y"), new Delta(6, "zz", "z")])
         it('adjust offsets using the base diff', () => {
+            const base = new Diff([new Delta(0, "x", "xx"), new Delta(2, "yy", "y"), new Delta(6, "zz", "z")])
             const target = new Diff([new Delta(1, "s", "ss"), new Delta(4, "tt", "t")])
             /* Example,
              * - the target text: "xsyyttzz"
@@ -95,6 +98,7 @@ describe('Diff', () => {
             rebased.should.deep.equal(new Diff([new Delta(2, "s", "ss"), new Delta(4, "tt", "t")]))
         })
         it('return conflict if the removed range is overlapped', () => {
+            const base = new Diff([new Delta(0, "x", "xx"), new Delta(2, "yy", "y"), new Delta(6, "zz", "z")])
             /* A conflict is occurred because both base and target1 remove "x" */
             const target1 = new Diff([new Delta(0, "x", "ss"), new Delta(4, "tt", "t")])
             const rebased1 = target1.rebase(base)
@@ -113,6 +117,7 @@ describe('Diff', () => {
     })
 
     describe('#then', () => {
+        ConstrainedData.mode = ExecutionMode.Debug
         it('merge two diffs into one diff', () => {
             const d1 = new Diff([new Delta(0, "x", "xx"), new Delta(2, "yy", "y"), new Delta(10, "zz", "z")])
             const d2 = new Diff([new Delta(2, "s", "ss"), new Delta(4, "tt", "t")])

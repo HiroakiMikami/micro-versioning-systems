@@ -30,6 +30,9 @@ class Delta extends ConstrainedData {
         }
         return null
     }
+    public toString(): string {
+        return `${this.offset}: \"${this.remove || ""}\" -> \"${this.insert || ""}\"`
+    }
 }
 
 /** A conflict occurred when trying to modified the text that the previous diff already modifies */
