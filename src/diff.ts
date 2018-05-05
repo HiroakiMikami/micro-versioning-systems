@@ -12,6 +12,11 @@ class Delta extends ConstrainedData {
     }
 
     /**
+     * @returns The interval that modified by this edit
+     */
+    public interval(): Interval { return new Interval(this.offset, this.remove.length) }
+
+    /**
      * Checks whether the offset of this object is not negative (a negative offset is invalid).
      * 
      * @returns whether this object is valid or not
@@ -82,16 +87,14 @@ class Diff extends ConstrainedData {
 
             let i1 = new Interval(-1, 0)
             if (base_index != 0 && base.deltas.length != 0) {
-                const d = base.deltas[base_index - 1]
-                i1 = new Interval(d.offset, d.remove.length)
+                i1 = base.deltas[base_index - 1].interval()
             }
             let i2 = new Interval(-1, 0)
             if (base_index < base.deltas.length) {
-                const d = base.deltas[base_index]
-                i2 = new Interval(d.offset, d.remove.length)
+                i2 = base.deltas[base_index].interval()
             }
 
-            const i = new Interval(delta.offset, delta.remove.length)
+            const i = delta.interval()
             if (i.intersect(i1) != null) {
                 // base.deltas[base_index - 1] and delta is overlapped
                 const x = i.intersect(i1)
@@ -109,21 +112,18 @@ class Diff extends ConstrainedData {
     }
 
     public validate(): string | null {
-        let start = -1
-        let end = -1
+        let i = new Interval(-1, 0)
         for (const delta of this.deltas) {
-            const s1 = delta.offset
-            const e1 = delta.offset + delta.remove.length
-            if (start >= s1) {
+            const i1 = delta.interval()
+            if (i.begin >= i1.begin) {
                 // deltas should be sorted
-                return `the deltas should be sorted (delta1: [${start}:${end}), delta2: [${s1}:${e1}))`
+                return `the deltas should be sorted (delta1: ${i}, delta2: ${i1})`
             }
-            if (end > s1) {
+            if (i.intersect(i1) != null) {
                 // deltas should not have overlaps
-                return `the deltas should not have overlaps (delta1: [${start}:${end}), delta2: [${s1}:${e1}))`
+                return `the deltas should not have overlaps (delta1: ${i}, delta2: ${i1})`
             }
-            start = s1
-            end = e1
+            i = i1
         }
         return null
     }

@@ -2,7 +2,7 @@ import * as chai from 'chai'
 const should = chai.should()
 
 import { Delta, Diff, DeleteAlreadyDeletedText } from '../src/diff'
-import { ExecutionMode, ConstrainedData } from '../src/common'
+import { ExecutionMode, ConstrainedData, Interval } from '../src/common'
 import { fail } from 'assert';
 
 describe('Delta', () => {
@@ -14,6 +14,12 @@ describe('Delta', () => {
         })
         it('negative is invalid', () => {
             new Delta(-1, "", "").validate().should.equal("the offset is negative (-1)")
+        })
+    })
+    describe('#interval', () => {
+        it('return the range to be deleted', () => {
+            new Delta(0, "xx", "").interval().should.deep.equal(new Interval(0, 2))
+            new Delta(0, "xx", "x").interval().should.deep.equal(new Interval(0, 2))
         })
     })
 })
