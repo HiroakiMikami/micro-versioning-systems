@@ -30,8 +30,8 @@ class Delta extends ConstrainedData {
     }
 }
 
-/** A conflict occurred when trying to delete the text that the previous diff already deletes */
-class DeleteAlreadyDeletedText extends ConstrainedData {
+/** A conflict occurred when trying to modified the text that the previous diff already modifies */
+class ModifyAlreadyModifiedText extends ConstrainedData {
     /**
      * @param offset The offset of the text
      * @param text The text already deleted
@@ -73,7 +73,7 @@ class Diff extends ConstrainedData {
      * @param base The new base diff
      * @returns The new diff that these offsets are calculated on top of `base`
      */
-    public rebase(base: Diff): Diff | DeleteAlreadyDeletedText {
+    public rebase(base: Diff): Diff | ModifyAlreadyModifiedText {
         let diff = 0
         let deltas = []
         let base_index = 0
@@ -98,12 +98,12 @@ class Diff extends ConstrainedData {
             if (i.intersect(i1) != null) {
                 // base.deltas[base_index - 1] and delta is overlapped
                 const x = i.intersect(i1)
-                return new DeleteAlreadyDeletedText(x.begin, delta.remove.substr(x.begin - delta.offset, x.length))
+                return new ModifyAlreadyModifiedText(x.begin, delta.remove.substr(x.begin - delta.offset, x.length))
             }
             if (i.intersect(i2) != null) {
                 // base.deltas[base_index] and delta is overlapped
                 const x = i.intersect(i2)
-                return new DeleteAlreadyDeletedText(x.begin, delta.remove.substr(x.begin - delta.offset, x.length))
+                return new ModifyAlreadyModifiedText(x.begin, delta.remove.substr(x.begin - delta.offset, x.length))
             }
 
             deltas.push(new Delta(delta.offset + diff, delta.remove, delta.insert))
@@ -129,4 +129,4 @@ class Diff extends ConstrainedData {
     }
 }
 
-export { Delta, Diff, DeleteAlreadyDeletedText }
+export { Delta, Diff, ModifyAlreadyModifiedText }

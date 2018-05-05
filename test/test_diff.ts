@@ -1,7 +1,7 @@
 import * as chai from 'chai'
 const should = chai.should()
 
-import { Delta, Diff, DeleteAlreadyDeletedText } from '../src/diff'
+import { Delta, Diff, ModifyAlreadyModifiedText } from '../src/diff'
 import { ExecutionMode, ConstrainedData, Interval } from '../src/common'
 import { fail } from 'assert';
 
@@ -90,8 +90,8 @@ describe('Diff', () => {
             /* A conflict is occurred because both base and target1 remove "x" */
             const target1 = new Diff([new Delta(0, "x", "ss"), new Delta(4, "tt", "t")])
             const rebased1 = target1.rebase(base)
-            if (rebased1 instanceof DeleteAlreadyDeletedText) {
-                rebased1.should.deep.equal(new DeleteAlreadyDeletedText(0, "x"))
+            if (rebased1 instanceof ModifyAlreadyModifiedText) {
+                rebased1.should.deep.equal(new ModifyAlreadyModifiedText(0, "x"))
             } else {
                 fail("rebase should return conflict")
             }
@@ -99,8 +99,8 @@ describe('Diff', () => {
              /* A conflict is occurred because both base and target2 remove "y" */
             const target2 = new Diff([new Delta(1, "x", "ss"), new Delta(3, "yt", "t")])
             const rebased2 = target2.rebase(base)
-            if (rebased2 instanceof DeleteAlreadyDeletedText) {
-                rebased2.should.deep.equal(new DeleteAlreadyDeletedText(3, "y"))
+            if (rebased2 instanceof ModifyAlreadyModifiedText) {
+                rebased2.should.deep.equal(new ModifyAlreadyModifiedText(3, "y"))
             } else {
                 fail("rebase should return conflict")
             }
@@ -108,8 +108,8 @@ describe('Diff', () => {
             /* A conflict is occurred because both base and target3 remove "z" */
             const target3 = new Diff([new Delta(1, "x", "ss"), new Delta(5, "tz", "t")])
             const rebased3 = target3.rebase(base)
-            if (rebased3 instanceof DeleteAlreadyDeletedText) {
-                rebased3.should.deep.equal(new DeleteAlreadyDeletedText(6, "z"))
+            if (rebased3 instanceof ModifyAlreadyModifiedText) {
+                rebased3.should.deep.equal(new ModifyAlreadyModifiedText(6, "z"))
             } else {
                 fail("rebase should return conflict")
             }
