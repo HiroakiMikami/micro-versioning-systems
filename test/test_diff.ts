@@ -97,7 +97,7 @@ describe('Diff', () => {
             const rebased = target.rebase(base)
             rebased.should.deep.equal(new Diff([new Delta(2, "s", "ss"), new Delta(4, "tt", "t")]))
         })
-        it('return conflict if the removed range is overlapped', () => {
+        it('return conflict if the modified range is overlapped', () => {
             const base = new Diff([new Delta(0, "x", "xx"), new Delta(2, "yy", "y"), new Delta(6, "zz", "z")])
             /* A conflict is occurred because both base and target1 remove "x" */
             const target1 = new Diff([new Delta(0, "x", "ss"), new Delta(4, "tt", "t")])
@@ -113,6 +113,21 @@ describe('Diff', () => {
             const target3 = new Diff([new Delta(1, "x", "ss"), new Delta(5, "tz", "t")])
             const rebased3 = target3.rebase(base)
             rebased3.should.deep.equal(new ModifyAlreadyModifiedText(6, "z"))
+
+            const base4 = new Diff([new Delta(0, "xx", "")])
+            const target4 = new Diff([new Delta(1, "", "ss")])
+            const rebased4 = target4.rebase(base4)
+            rebased4.should.deep.equal(new ModifyAlreadyModifiedText(1, ""))
+
+            const base5 = new Diff([new Delta(0, "", "xx")])
+            const target5 = new Diff([new Delta(0, "", "ss")])
+            const rebased5 = target5.rebase(base5)
+            rebased5.should.deep.equal(new ModifyAlreadyModifiedText(0, ""))
+
+            const base6 = new Diff([new Delta(0, "", "xx")])
+            const target6 = new Diff([new Delta(0, "ss", "")])
+            const rebased6 = target6.rebase(base6)
+            rebased6.should.deep.equal(new ModifyAlreadyModifiedText(0, ""))
         })
     })
 
