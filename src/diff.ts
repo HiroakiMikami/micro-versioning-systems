@@ -46,6 +46,26 @@ class ModifyAlreadyModifiedText extends ConstrainedData {
     }
 }
 
+/** A conflict occurred when trying to delete the non-existing text */
+class DeleteNonExistingText extends ConstrainedData {
+    /**
+     * @param offset The offset of the text
+     * @param expected The text to be deleted
+     * @param actual The actual text
+     */
+    constructor (public offset: number, public expected: string, public actual: string) { super() }
+    public validate(): string | null {
+        if (this.offset < 0) {
+            return `the offset is negative (${this.offset})`
+        }
+
+        if (this.expected == this.actual) {
+            return `the expected text and the actual text is same (${this.expected})`
+        }
+        return null
+    }
+}
+
 /** A complex text manipulation */
 class Diff extends ConstrainedData {
     /**
@@ -111,6 +131,78 @@ class Diff extends ConstrainedData {
         return new Diff(deltas)
     }
 
+    /**
+     * Merge the two diffs into one diff
+     *
+     * @param next the diff applied in 2nd step
+     * @returns The new diff that applies `this` first, then applies `next`
+     */
+    public then(next: Diff): Diff | DeleteNonExistingText {
+        let deltas = []
+
+        let diff = 0
+        let index = 0
+        for (const delta of next.deltas) {
+            while (index != this.deltas.length) {
+                const d = this.deltas[index]
+                const end = d.offset + diff + d.insert.length
+                if (end > delta.offset) {
+                    break
+                }
+                diff += d.insert.length - d.remove.length
+                index += 1
+                deltas.push(d)
+            }
+            // get conflicted deltas
+            let conflicted = []
+            let tmp_diff = 0
+            while (index != this.deltas.length) {
+                const d = this.deltas[index]
+                const i = new Interval(d.offset + diff, d.insert.length)
+                if (!i.intersect(delta.interval())) {
+                    break
+                }
+                conflicted.push(new Delta(d.offset + tmp_diff, d.remove, d.insert))
+                tmp_diff += d.insert.length - d.remove.length
+
+                index += 1
+            }
+            let offset = delta.offset - diff
+            let remove = delta.remove
+            let insert = delta.insert
+
+            for (const c of conflicted.reverse()) {
+                const i_d = new Interval(offset, remove.length)
+                const i_c = new Interval(c.offset, c.insert.length)
+
+                offset =  Math.min(i_d.begin, i_c.begin)
+
+                if (i_c.begin < i_d.begin) {
+                    insert = c.insert.slice(0, i_d.begin - i_c.begin) + insert
+                } else if (i_d.end < i_c.end) {
+                    insert = insert + c.insert.slice(i_d.end - i_c.begin)
+                }
+
+                const b = Math.max(i_d.begin, i_c.begin)
+                const e = Math.min(i_d.end, i_c.end)
+                const actual = c.insert.slice(Math.max(b - i_c.begin, 0), e - i_c.begin)
+                const expected = remove.slice(Math.max(b - i_d.begin, 0), e - i_d.begin)
+                if (actual != expected) {
+                    return new DeleteNonExistingText(b, expected, actual)
+                }
+                remove = remove.slice(0, Math.max(b - i_d.begin, 0)) + c.remove + remove.slice(e - i_d.begin)
+            }
+
+            deltas.push(new Delta(offset, remove, insert))
+        }
+
+        for (let i = index; i < this.deltas.length; ++i) {
+            deltas.push(this.deltas[i])
+        }
+
+        return new Diff(deltas)
+    }
+
     public validate(): string | null {
         let i = new Interval(-1, 0)
         for (const delta of this.deltas) {
@@ -129,4 +221,4 @@ class Diff extends ConstrainedData {
     }
 }
 
-export { Delta, Diff, ModifyAlreadyModifiedText }
+export { Delta, Diff, ModifyAlreadyModifiedText, DeleteNonExistingText }
