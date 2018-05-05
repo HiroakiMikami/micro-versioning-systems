@@ -3,7 +3,6 @@ const should = chai.should()
 
 import { Delta, Diff, ModifyAlreadyModifiedText, DeleteNonExistingText } from '../src/diff'
 import { ExecutionMode, ConstrainedData, Interval } from '../src/common'
-import { fail } from 'assert';
 
 describe('DeleteNonExistingText', () => {
     describe('#validate', () => {
@@ -18,12 +17,14 @@ describe('DeleteNonExistingText', () => {
 describe('Delta', () => {
     describe('#validate', () => {
         ConstrainedData.mode = ExecutionMode.Release
-        it('non-negative offset is valid', () => {
-            should.not.exist(new Delta(0, "", "").validate())
-            should.not.exist(new Delta(1, "", "").validate())
-        })
         it('negative is invalid', () => {
-            new Delta(-1, "", "").validate().should.equal("the offset is negative (-1)")
+            should.not.exist(new Delta(0, "", "x").validate())
+            should.not.exist(new Delta(1, "", "x").validate())
+            new Delta(-1, "", "x").validate().should.equal("the offset is negative (-1)")
+        })
+        it('the remove and the insert should not be same', () => {
+            should.not.exist(new Delta(1, "", "x").validate())
+            new Delta(0, "x", "x").validate().should.equal("the delete text and the insert text is same (x->x)")
         })
     })
     describe('#interval', () => {
@@ -38,25 +39,27 @@ describe('Diff', () => {
     describe('#validate', () => {
         ConstrainedData.mode = ExecutionMode.Release
         it('deltas should be sorted by offsets', () => {
-            should.not.exist(new Diff([new Delta(0, "", ""), new Delta(1, "", "")]).validate())
-            new Diff([new Delta(0, "", ""), new Delta(0, "", "")]).validate()
-                .should.equal("the deltas should be sorted (delta1: [0:0), delta2: [0:0))")
-            new Diff([new Delta(1, "", ""), new Delta(0, "", "")]).validate()
+            should.not.exist(new Diff([new Delta(0, "", "x"), new Delta(1, "", "x")]).validate())
+            new Diff([new Delta(1, "", "x"), new Delta(0, "", "x")]).validate()
                 .should.equal("the deltas should be sorted (delta1: [1:1), delta2: [0:0))")
         })
         it('deltas should not have overlaps', () => {
-            should.not.exist(new Diff([new Delta(0, "", ""), new Delta(1, "", "")]).validate())
-            should.not.exist(new Diff([new Delta(0, "x", ""), new Delta(1, "", "")]).validate())
-            new Diff([new Delta(0, "xx", ""), new Delta(1, "", "")]).validate()
+            should.not.exist(new Diff([new Delta(0, "", "x"), new Delta(1, "", "x")]).validate())
+            should.not.exist(new Diff([new Delta(0, "y", "x"), new Delta(2, "", "x")]).validate())
+            new Diff([new Delta(0, "x", ""), new Delta(1, "", "y")]).validate()
+                .should.equal("the deltas should not have overlaps (delta1: [0:1), delta2: [1:1))")
+            new Diff([new Delta(0, "", "x"), new Delta(0, "", "x")]).validate()
+                .should.equal("the deltas should not have overlaps (delta1: [0:0), delta2: [0:0))")
+            new Diff([new Delta(0, "xx", ""), new Delta(1, "", "x")]).validate()
                 .should.equal("the deltas should not have overlaps (delta1: [0:2), delta2: [1:1))")
         })
     })
 
     describe('#inverse', () => {
         it('swap remove and insert of each delta', () => {
-            const orig = new Diff([new Delta(0, "x", "y"), new Delta(1, "s", "t")])
+            const orig = new Diff([new Delta(0, "x", "y"), new Delta(2, "s", "t")])
             const inverse = orig.inverse()
-            inverse.deltas.should.deep.equal([new Delta(0, "y", "x"), new Delta(1, "t", "s")])
+            inverse.deltas.should.deep.equal([new Delta(0, "y", "x"), new Delta(2, "t", "s")])
         })
         it('adjust offsets', () => {
             const orig = new Diff([new Delta(0, "x", "xx"), new Delta(1, "yy", "y"), new Delta(3, "z", "z")])
@@ -69,7 +72,7 @@ describe('Diff', () => {
              *
              * => The inverse operation should modify a text "xxyz" to "xyyz".
              */
-            inverse.deltas.should.deep.equal([new Delta(0, "xx", "x"), new Delta(2, "y", "yy"), new Delta(3, "z", "z")])
+            inverse.deltas.should.deep.equal([new Delta(0, "xxyz", "xyyz")])
         })
     })
 
@@ -81,7 +84,6 @@ describe('Diff', () => {
         const base = new Diff([new Delta(0, "x", "xx"), new Delta(2, "yy", "y"), new Delta(6, "zz", "z")])
         it('adjust offsets using the base diff', () => {
             const target = new Diff([new Delta(1, "s", "ss"), new Delta(4, "tt", "t")])
-
             /* Example,
              * - the target text: "xsyyttzz"
              * - base is applied: "xxsyttz"
@@ -90,39 +92,23 @@ describe('Diff', () => {
              * => `target.rebase(base)` should modify a text "xxsyttz" to "xxssytz"
              */
             const rebased = target.rebase(base)
-            if (rebased instanceof Diff) {
-                rebased.deltas.should.deep.equal([new Delta(2, "s", "ss"), new Delta(4, "tt", "t")])
-            } else {
-                fail("rebase should return a Diff object")
-            }
+            rebased.should.deep.equal(new Diff([new Delta(2, "s", "ss"), new Delta(4, "tt", "t")]))
         })
         it('return conflict if the removed range is overlapped', () => {
             /* A conflict is occurred because both base and target1 remove "x" */
             const target1 = new Diff([new Delta(0, "x", "ss"), new Delta(4, "tt", "t")])
             const rebased1 = target1.rebase(base)
-            if (rebased1 instanceof ModifyAlreadyModifiedText) {
-                rebased1.should.deep.equal(new ModifyAlreadyModifiedText(0, "x"))
-            } else {
-                fail("rebase should return conflict")
-            }
+            rebased1.should.deep.equal(new ModifyAlreadyModifiedText(0, "x"))
 
              /* A conflict is occurred because both base and target2 remove "y" */
             const target2 = new Diff([new Delta(1, "x", "ss"), new Delta(3, "yt", "t")])
             const rebased2 = target2.rebase(base)
-            if (rebased2 instanceof ModifyAlreadyModifiedText) {
-                rebased2.should.deep.equal(new ModifyAlreadyModifiedText(3, "y"))
-            } else {
-                fail("rebase should return conflict")
-            }
+            rebased2.should.deep.equal(new ModifyAlreadyModifiedText(3, "y"))
 
             /* A conflict is occurred because both base and target3 remove "z" */
             const target3 = new Diff([new Delta(1, "x", "ss"), new Delta(5, "tz", "t")])
             const rebased3 = target3.rebase(base)
-            if (rebased3 instanceof ModifyAlreadyModifiedText) {
-                rebased3.should.deep.equal(new ModifyAlreadyModifiedText(6, "z"))
-            } else {
-                fail("rebase should return conflict")
-            }
+            rebased3.should.deep.equal(new ModifyAlreadyModifiedText(6, "z"))
         })
     })
 
@@ -139,7 +125,7 @@ describe('Diff', () => {
              * => `d1.then(d2)` should modify a text "xsyytt...zz" to "xxssyt...z"
              */
             d1.then(d2).should.deep.equal(
-                new Diff([new Delta(0, "x", "xx"), new Delta(1, "s", "ss"), new Delta(2, "yy", "y"), new Delta(4, "tt", "t"), new Delta(10, "zz", "z")]))
+                new Diff([new Delta(0, "xsyytt", "xxssyt"), new Delta(10, "zz", "z")]))
         })
         it('merge two diffs with conflicts into one diff (delete)', () => {
             const d11 = new Diff([new Delta(2, "x", "")])

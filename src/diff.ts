@@ -22,11 +22,13 @@ class Delta extends ConstrainedData {
      * @returns whether this object is valid or not
      */
     public validate(): string | null {
-        if (this.offset >= 0) {
-            return null
-        } else {
+        if (this.offset < 0) {
             return `the offset is negative (${this.offset})`
         }
+        if (this.remove == this.insert) {
+            return `the delete text and the insert text is same (${this.remove}->${this.insert})`
+        }
+        return null
     }
 }
 
@@ -38,11 +40,10 @@ class ModifyAlreadyModifiedText extends ConstrainedData {
      */
     constructor (public offset: number, public text: string) { super() }
     public validate(): string | null {
-        if (this.offset >= 0) {
-            return null
-        } else {
+        if (this.offset < 0) {
             return `the offset is negative (${this.offset})`
         }
+        return null
     }
 }
 
@@ -84,7 +85,7 @@ class Diff extends ConstrainedData {
             diff += delta.insert.length - delta.remove.length
             inversed_deltas.push(idelta)
         }
-        return new Diff(inversed_deltas)
+        return new Diff(Diff.normalize(inversed_deltas))
     }
 
     /**
@@ -128,7 +129,7 @@ class Diff extends ConstrainedData {
             /* add the re-calculated delta */
             deltas.push(new Delta(delta.offset + diff, delta.remove, delta.insert))
         }
-        return new Diff(deltas)
+        return new Diff(Diff.normalize(deltas))
     }
 
     /**
@@ -213,24 +214,42 @@ class Diff extends ConstrainedData {
             deltas.push(this.deltas[i])
         }
 
-        return new Diff(deltas)
+        return new Diff(Diff.normalize(deltas))
     }
 
     public validate(): string | null {
         let i = new Interval(-1, 0)
         for (const delta of this.deltas) {
             const i1 = delta.interval()
+            if (i.intersect(i1) != null || i.end == i1.begin) {
+                // deltas should not have overlaps
+                return `the deltas should not have overlaps (delta1: ${i}, delta2: ${i1})`
+            }
             if (i.begin >= i1.begin) {
                 // deltas should be sorted
                 return `the deltas should be sorted (delta1: ${i}, delta2: ${i1})`
             }
-            if (i.intersect(i1) != null) {
-                // deltas should not have overlaps
-                return `the deltas should not have overlaps (delta1: ${i}, delta2: ${i1})`
-            }
             i = i1
         }
         return null
+    }
+
+    private static normalize(deltas: Delta[]): Delta[] {
+        let new_deltas: Delta[] = []
+        for (const delta of deltas) {
+            if (new_deltas.length == 0) {
+                new_deltas.push(delta)
+            } else {
+                const d = new_deltas[new_deltas.length - 1]
+                if (d.interval().end == delta.offset) {
+                    new_deltas.pop()
+                    new_deltas.push(new Delta(d.offset, d.remove + delta.remove, d.insert + delta.insert))
+                } else {
+                    new_deltas.push(delta)
+                }
+            }
+        }
+        return new_deltas
     }
 }
 
