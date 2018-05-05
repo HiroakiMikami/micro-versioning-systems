@@ -25,4 +25,32 @@ class Delta extends ConstrainedData {
     }
 }
 
-export { Delta }
+/** A complex text manipulation */
+class Diff extends ConstrainedData {
+    /**
+     * @param deltas The textual edits to be applied
+     */
+    constructor (public readonly deltas: Delta[]) { super() }
+
+    public validate(): string | null {
+        let start = -1
+        let end = -1
+        for (const delta of this.deltas) {
+            const s1 = delta.offset
+            const e1 = delta.offset + delta.remove.length
+            if (start >= s1) {
+                // deltas should be sorted
+                return `the deltas should be sorted (delta1: [${start}:${end}), delta2: [${s1}:${e1}))`
+            }
+            if (end > s1) {
+                // deltas should not have overlaps
+                return `the deltas should not have overlaps (delta1: [${start}:${end}), delta2: [${s1}:${e1}))`
+            }
+            start = s1
+            end = e1
+        }
+        return null
+    }
+}
+
+export { Delta, Diff }
