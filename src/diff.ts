@@ -99,33 +99,33 @@ class Diff extends ConstrainedData {
         let base_index = 0
 
         for (const delta of this.deltas) {
+            /* skip unrelated base deltas and update the offset difference */
             while (base_index != base.deltas.length && base.deltas[base_index].offset < delta.offset) {
                 const d = base.deltas[base_index]
                 diff += d.insert.length - d.remove.length
                 base_index += 1
             }
 
-            let i1 = new Interval(-1, 0)
-            if (base_index != 0 && base.deltas.length != 0) {
-                i1 = base.deltas[base_index - 1].interval()
-            }
-            let i2 = new Interval(-1, 0)
-            if (base_index < base.deltas.length) {
-                i2 = base.deltas[base_index].interval()
-            }
-
+            /* check whether `base` and `this` are conflicted or not */
             const i = delta.interval()
-            if (i.intersect(i1) != null) {
-                // base.deltas[base_index - 1] and delta is overlapped
-                const x = i.intersect(i1)
-                return new ModifyAlreadyModifiedText(x.begin, delta.remove.substr(x.begin - delta.offset, x.length))
+            if (base_index != 0 && base.deltas.length != 0) {
+                const i1 = base.deltas[base_index - 1].interval()
+                if (i.intersect(i1) != null) {
+                    // base.deltas[base_index - 1] and delta is overlapped
+                    const x = i.intersect(i1)
+                    return new ModifyAlreadyModifiedText(x.begin, delta.remove.substr(x.begin - delta.offset, x.length))
+                }
             }
-            if (i.intersect(i2) != null) {
-                // base.deltas[base_index] and delta is overlapped
-                const x = i.intersect(i2)
-                return new ModifyAlreadyModifiedText(x.begin, delta.remove.substr(x.begin - delta.offset, x.length))
+            if (base_index < base.deltas.length) {
+                const i2 = base.deltas[base_index].interval()
+                if (i.intersect(i2) != null) {
+                    // base.deltas[base_index] and delta is overlapped
+                    const x = i.intersect(i2)
+                    return new ModifyAlreadyModifiedText(x.begin, delta.remove.substr(x.begin - delta.offset, x.length))
+                }
             }
 
+            /* add the re-calculated delta */
             deltas.push(new Delta(delta.offset + diff, delta.remove, delta.insert))
         }
         return new Diff(deltas)
@@ -143,6 +143,7 @@ class Diff extends ConstrainedData {
         let diff = 0
         let index = 0
         for (const delta of next.deltas) {
+            /* skip unrelated `this` deltas and update the offset difference*/
             while (index != this.deltas.length) {
                 const d = this.deltas[index]
                 const end = d.offset + diff + d.insert.length
@@ -153,7 +154,7 @@ class Diff extends ConstrainedData {
                 index += 1
                 deltas.push(d)
             }
-            // get conflicted deltas
+            /* get conflicted deltas */
             let conflicted = []
             let tmp_diff = 0
             while (index != this.deltas.length) {
@@ -167,35 +168,47 @@ class Diff extends ConstrainedData {
 
                 index += 1
             }
+
+            /* create merged delta */
+            // initial value
             let offset = delta.offset - diff
             let remove = delta.remove
             let insert = delta.insert
 
             for (const c of conflicted.reverse()) {
+                /* resolve conflit between c and this */
+                // Interval based on the text after applying c
                 const i_d = new Interval(offset, remove.length)
                 const i_c = new Interval(c.offset, c.insert.length)
 
-                offset =  Math.min(i_d.begin, i_c.begin)
+                offset =  Math.min(i_d.begin, i_c.begin) //< update a offset
 
+                // update insert if c's insert is remained in the final text
                 if (i_c.begin < i_d.begin) {
                     insert = c.insert.slice(0, i_d.begin - i_c.begin) + insert
                 } else if (i_d.end < i_c.end) {
                     insert = insert + c.insert.slice(i_d.end - i_c.begin)
                 }
 
+                // update delete
                 const b = Math.max(i_d.begin, i_c.begin)
                 const e = Math.min(i_d.end, i_c.end)
                 const actual = c.insert.slice(Math.max(b - i_c.begin, 0), e - i_c.begin)
                 const expected = remove.slice(Math.max(b - i_d.begin, 0), e - i_d.begin)
+                // actual and expected should be same because `actual` in `c.insert` is deleted by `delta.remove`
                 if (actual != expected) {
+                    // `delete.remove` try to remove a non-exsiting text
                     return new DeleteNonExistingText(b, expected, actual)
                 }
+                // remove `expected` from `remove`, and insert `c.remove` to `remove`
                 remove = remove.slice(0, Math.max(b - i_d.begin, 0)) + c.remove + remove.slice(e - i_d.begin)
             }
 
+            /* add the re-calculated delta */
             deltas.push(new Delta(offset, remove, insert))
         }
 
+        /* add the remained deltas in `this` */
         for (let i = index; i < this.deltas.length; ++i) {
             deltas.push(this.deltas[i])
         }
