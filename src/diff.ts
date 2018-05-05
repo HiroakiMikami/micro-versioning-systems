@@ -32,6 +32,20 @@ class Diff extends ConstrainedData {
      */
     constructor (public readonly deltas: Delta[]) { super() }
 
+    /**
+     * @returns An inverse manipulation
+     */
+    public inverse(): Diff {
+        let diff = 0
+        let inversed_deltas = []
+        for (const delta of this.deltas) {
+            const idelta = new Delta(delta.offset + diff, delta.insert, delta.remove)
+            diff += delta.insert.length - delta.remove.length
+            inversed_deltas.push(idelta)
+        }
+        return new Diff(inversed_deltas)
+    }
+
     public validate(): string | null {
         let start = -1
         let end = -1

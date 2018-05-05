@@ -34,4 +34,22 @@ describe('Diff', () => {
                 .should.equal("the deltas should not have overlaps (delta1: [0:2), delta2: [1:1))")
         })
     })
+
+    describe('#inverse', () => {
+        it('swap remove and insert of each delta', () => {
+            const orig = new Diff([new Delta(0, "x", "y"), new Delta(1, "s", "t")])
+            const inverse = orig.inverse()
+            inverse.deltas.should.deep.equal([new Delta(0, "y", "x"), new Delta(1, "t", "s")])
+        })
+        it('adjust offsets', () => {
+            const orig = new Diff([new Delta(0, "x", "xx"), new Delta(1, "yy", "y"), new Delta(3, "z", "z")])
+            const inverse = orig.inverse()
+
+            /*
+             * If `orig` is applied to "xyyz", the result is "xxyz".
+             * -> The inverse operation should modify a text "xxyz" to "xyyz".
+             */
+            inverse.deltas.should.deep.equal([new Delta(0, "xx", "x"), new Delta(2, "y", "yy"), new Delta(3, "z", "z")])
+        })
+    })
 })
