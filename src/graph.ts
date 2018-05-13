@@ -4,14 +4,14 @@ import { ConstrainedData } from "./common"
 type Predicate<V, L> = (self: DirectedGraph<V, L>) => string | null
 
 /** A labeled directed graph */
-class DirectedGraph<V, L> extends ConstrainedData {
+abstract class DirectedGraph<V, L> extends ConstrainedData {
     /**
      * @param vertices The vertex set
      * @param edges The edge set (there is a v1 -> v2 edge with label `l` if this.edges.get(v1) contains (v2, l))
      * @param pred The user defined constraint
      */
     constructor(public readonly vertices: Set<V>, public readonly edges: Map<V, Map<V, L>>,
-                private readonly pred?: Predicate<V, L>) {
+                protected readonly pred?: Predicate<V, L>) {
         super()
     }
     /**
@@ -41,5 +41,66 @@ class DirectedGraph<V, L> extends ConstrainedData {
         return null
     }
 }
+/** A immutable labeled directed graph */
+class ImmutableDirectedGraph<V, L> extends DirectedGraph<V, L> {}
 
-export { Predicate, DirectedGraph }
+/** A mutable labeled directed graph */
+class MutableDirectedGraph<V, L> extends DirectedGraph<V, L> {
+    /**
+     * @param v The vertex to be added
+     */
+    public addVertex(v: V) {
+        this.vertices.add(v)
+    }
+    /**
+     * @param v The vertex to be removed
+     */
+    public removeVertex(v: V) {
+        this.vertices.delete(v)
+        this.edges.delete(v)
+        let tmp = []
+        for (const elem of this.edges) {
+            if (elem[1].has(v)) {
+                tmp.push([elem[0], v])
+            }
+        }
+        for (const [v1, v2] of tmp) {
+            this.removeEdge(v1, v2)
+        }
+    }
+    /**
+     * @param v1 The endpoint vertex of the edge to be added (1)
+     * @param v2 The endpoint vertex of the edge to be added (2)
+     * @param label The label of the edge to be added
+     */
+    public addEdge(v1: V, v2: V, label: L) {
+        if (!this.edges.has(v1)) {
+            this.edges.set(v1, new Map([[v2, label]]))
+        } else {
+            this.edges.get(v1).set(v2, label)
+        }
+    }
+    /**
+     * @param v1 The endpoint vertex of the edge to be removed(1)
+     * @param v2 The endpoint vertex of the edge to be removed (2)
+     */
+    public removeEdge(v1: V, v2: V) {
+        if (!this.edges.has(v1)) return
+        this.edges.get(v1).delete(v2)
+        if (this.edges.get(v1).size == 0) {
+            this.edges.delete(v1)
+        }
+    }
+    /**
+     * @returns The immutable object of this graph
+     */
+    public immutable(): ImmutableDirectedGraph<V, L> {
+        const edges = new Map()
+        for (const [v1, vs] of this.edges) {
+            edges.set(v1, new Map(Array.from(vs)))
+        }
+        return new ImmutableDirectedGraph<V, L>(new Set(Array.from(this.vertices)), edges, this.pred)
+    }
+}
+
+export { Predicate, DirectedGraph, ImmutableDirectedGraph, MutableDirectedGraph }
