@@ -12,7 +12,7 @@ class Delta extends ConstrainedData {
     }
 
     /**
-     * @returns The interval that modified by this edit
+     * @returns The interval that the text to be modified by this edit
      */
     public interval(): Interval { return new Interval(this.offset, this.remove.length) }
 
