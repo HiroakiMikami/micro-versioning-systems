@@ -8,7 +8,15 @@ class Delta extends ConstrainedData {
      * @param insert The string to be inserted
      */
     constructor (public readonly offset: number, public readonly remove: string | null, public readonly insert: string | null) {
-        super()
+        super(() => {
+            if (offset < 0) {
+                return `the offset is negative (${offset})`
+            }
+            if (remove == insert) {
+                return `the delete text and the insert text is same (${remove}->${insert})`
+            }
+            return null
+        })
     }
 
     /**
@@ -16,20 +24,6 @@ class Delta extends ConstrainedData {
      */
     public interval(): Interval { return new Interval(this.offset, this.remove.length) }
 
-    /**
-     * Checks whether the offset of this object is not negative (a negative offset is invalid).
-     * 
-     * @returns whether this object is valid or not
-     */
-    public validate(): string | null {
-        if (this.offset < 0) {
-            return `the offset is negative (${this.offset})`
-        }
-        if (this.remove == this.insert) {
-            return `the delete text and the insert text is same (${this.remove}->${this.insert})`
-        }
-        return null
-    }
     public toString(): string {
         return `${this.offset}: \"${this.remove || ""}\" -> \"${this.insert || ""}\"`
     }
@@ -41,12 +35,13 @@ class ModifyAlreadyModifiedText extends ConstrainedData {
      * @param offset The offset of the text
      * @param text The text already deleted
      */
-    constructor (public offset: number, public text: string) { super() }
-    public validate(): string | null {
-        if (this.offset < 0) {
-            return `the offset is negative (${this.offset})`
-        }
-        return null
+    constructor (public offset: number, public text: string) {
+        super(() => {
+            if (offset < 0) {
+                return `the offset is negative (${this.offset})`
+            }
+            return null
+        })
     }
 }
 
@@ -57,16 +52,17 @@ class DeleteNonExistingText extends ConstrainedData {
      * @param expected The text to be deleted
      * @param actual The actual text
      */
-    constructor (public offset: number, public expected: string, public actual: string) { super() }
-    public validate(): string | null {
-        if (this.offset < 0) {
-            return `the offset is negative (${this.offset})`
-        }
+    constructor (public offset: number, public expected: string, public actual: string) {
+        super(() => {
+            if (offset < 0) {
+                return `the offset is negative (${offset})`
+            }
 
-        if (this.expected == this.actual) {
-            return `the expected text and the actual text is same (${this.expected})`
-        }
-        return null
+            if (expected == actual) {
+                return `the expected text and the actual text is same (${expected})`
+            }
+            return null
+        })
     }
 }
 
@@ -75,7 +71,24 @@ class Diff extends ConstrainedData {
     /**
      * @param deltas The textual edits to be applied
      */
-    constructor (public readonly deltas: Delta[]) { super() }
+    constructor (public readonly deltas: Delta[]) {
+        super(() => {
+            let i = new Interval(-1, 0)
+            for (const delta of deltas) {
+                const i1 = delta.interval()
+                if (i.intersect(i1) != null || i.end == i1.begin) {
+                    // deltas should not have overlaps
+                    return `the deltas should not have overlaps (delta1: ${i}, delta2: ${i1})`
+                }
+                if (i.begin >= i1.begin) {
+                    // deltas should be sorted
+                    return `the deltas should be sorted (delta1: ${i}, delta2: ${i1})`
+                }
+                i = i1
+            }
+            return null
+        })
+    }
 
     /**
      * @returns An inverse manipulation
@@ -218,23 +231,6 @@ class Diff extends ConstrainedData {
         }
 
         return new Diff(Diff.normalize(deltas))
-    }
-
-    public validate(): string | null {
-        let i = new Interval(-1, 0)
-        for (const delta of this.deltas) {
-            const i1 = delta.interval()
-            if (i.intersect(i1) != null || i.end == i1.begin) {
-                // deltas should not have overlaps
-                return `the deltas should not have overlaps (delta1: ${i}, delta2: ${i1})`
-            }
-            if (i.begin >= i1.begin) {
-                // deltas should be sorted
-                return `the deltas should be sorted (delta1: ${i}, delta2: ${i1})`
-            }
-            i = i1
-        }
-        return null
     }
 
     private static normalize(deltas: Delta[]): Delta[] {

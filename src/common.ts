@@ -8,18 +8,17 @@ enum ExecutionMode {
 
 /** A data structure with constrains */
 abstract class ConstrainedData {
-    constructor() {
+    /**
+     * @param validate A validation function that returns null if this object is valid, otherwise returns an error message
+     */
+    constructor(validate: () => string | null) {
         if (ConstrainedData.mode == ExecutionMode.Debug) {
-            const ret = this.validate()
+            const ret = validate()
             if (ret !== null) {
                 throw new AssertionError({ message: `${this}: ${ret}`})
             }
         }
     }
-    /**
-     * @returns null if this object is valid, otherwise returns an error message
-     */
-    public abstract validate(): string | null
 
     /** The current execution mode */
     static mode: ExecutionMode = ExecutionMode.Release
@@ -34,7 +33,12 @@ class Interval extends ConstrainedData {
      * @param length The length of this interval
      */
     constructor (public readonly begin: number, public readonly length: number) {
-        super()
+        super(() => {
+            if (length < 0) {
+                return `the length is negative (${length})`
+            }
+            return null
+        })
         this.end = this.begin + length
     }
 
@@ -58,12 +62,6 @@ class Interval extends ConstrainedData {
 
     public toString(): string {
         return `[${this.begin}:${this.end})`
-    }
-    public validate(): string | null {
-        if (this.length < 0) {
-            return `the length is negative (${this.length})`
-        }
-        return null
     }
 }
 

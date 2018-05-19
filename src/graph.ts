@@ -12,7 +12,25 @@ abstract class DirectedGraph<V, L> extends ConstrainedData {
      */
     constructor(public readonly vertices: Set<V>, public readonly edges: Map<V, Map<V, L>>,
                 protected readonly pred?: Predicate<V, L>) {
-        super()
+        super(() => {
+            /* Invalid if an edge connects vertices that are not in this.vertices */
+            for (const edge of edges) {
+                const [v1, vs] = edge
+                if (!vertices.has(v1)) {
+                    return `the vertex (${v1}) is not in the vertices set`
+                }
+                for (const v of vs) {
+                    const v2 = v[0]
+                    if (!vertices.has(v2)) {
+                        return `the vertex (${v2}) is not in the vertices set`
+                    }
+                }
+            }
+            if (pred) {
+                return pred(new ImmutableDirectedGraph(vertices, edges))
+            }
+            return null
+        })
     }
     /**
      * @param v
@@ -20,25 +38,6 @@ abstract class DirectedGraph<V, L> extends ConstrainedData {
      */
     public successors(v: V): Map<V, L> {
         return this.edges.has(v) ? this.edges.get(v) : new Map()
-    }
-    public validate(): string | null {
-        /* Invalid if an edge connects vertices that are not in this.vertices */
-        for (const edge of this.edges) {
-            const [v1, vs] = edge
-            if (!this.vertices.has(v1)) {
-                return `the vertex (${v1}) is not in the vertices set`
-            }
-            for (const v of vs) {
-                const v2 = v[0]
-                if (!this.vertices.has(v2)) {
-                    return `the vertex (${v2}) is not in the vertices set`
-                }
-            }
-        }
-        if (this.pred) {
-            return this.pred(this)
-        }
-        return null
     }
 }
 /** A immutable labeled directed graph */

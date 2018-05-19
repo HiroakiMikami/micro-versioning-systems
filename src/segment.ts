@@ -19,7 +19,15 @@ class Segment extends ConstrainedData {
      * @param status The status of this segment
      */
     constructor(public readonly offset: number, public readonly text: string, public readonly status: Status) {
-        super()
+        super(() => {
+            if (offset < 0) {
+                return `the offset is negative (${offset})`
+            }
+            if (text.length === 0) {
+                return `the text is empty`
+            }
+            return null
+        })
     }
 
     /**
@@ -92,13 +100,6 @@ class Segment extends ConstrainedData {
         } else {
             return new Interval(this.offset, 0)
         }
-    }
-
-    public validate(): string | null {
-        if (this.offset < 0) {
-            return `the offset is negative (${this.offset})`
-        }
-        return null
     }
 }
 
