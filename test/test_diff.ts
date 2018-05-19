@@ -26,6 +26,16 @@ describe('Delta', () => {
             (() => new Delta(0, "x", "x")).should.throw()
         })
     })
+    describe('#apply', () => {
+        u.it('return the modified text', () => {
+            new Delta(1, "23", "").apply("1234").should.equal("14")
+            new Delta(1, "", "ab").apply("1234").should.equal("1ab234")
+            new Delta(1, "23", "ab").apply("1234").should.equal("1ab4")
+        })
+        u.it('return conflict when the operation is impossible', () => {
+            new Delta(1, "23", "").apply("1ab4").should.deep.equal(new DeleteNonExistingText(1, "23", "ab"))
+        })
+    })
     describe('#interval', () => {
         u.it('return the range to be deleted', () => {
             new Delta(0, "xx", "").interval().should.deep.equal(new Interval(0, 2))

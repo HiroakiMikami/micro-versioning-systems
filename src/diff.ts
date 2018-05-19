@@ -1,34 +1,5 @@
 import { ConstrainedData, Interval } from "./common"
 
-/** A textual edit */
-class Delta extends ConstrainedData {
-    /**
-     * @param offset The offset that this edit is applied
-     * @param remove The string to be deleted
-     * @param insert The string to be inserted
-     */
-    constructor (public readonly offset: number, public readonly remove: string | null, public readonly insert: string | null) {
-        super(() => {
-            if (offset < 0) {
-                return `the offset is negative (${offset})`
-            }
-            if (remove == insert) {
-                return `the delete text and the insert text is same (${remove}->${insert})`
-            }
-            return null
-        })
-    }
-
-    /**
-     * @returns The interval that the text to be modified by this edit
-     */
-    public interval(): Interval { return new Interval(this.offset, this.remove.length) }
-
-    public toString(): string {
-        return `${this.offset}: \"${this.remove || ""}\" -> \"${this.insert || ""}\"`
-    }
-}
-
 /** A conflict occurred when trying to modified the text that the previous diff already modifies */
 class ModifyAlreadyModifiedText extends ConstrainedData {
     /**
@@ -63,6 +34,49 @@ class DeleteNonExistingText extends ConstrainedData {
             }
             return null
         })
+    }
+}
+
+/** A textual edit */
+class Delta extends ConstrainedData {
+    /**
+     * @param offset The offset that this edit is applied
+     * @param remove The string to be deleted
+     * @param insert The string to be inserted
+     */
+    constructor (public readonly offset: number, public readonly remove: string | null, public readonly insert: string | null) {
+        super(() => {
+            if (offset < 0) {
+                return `the offset is negative (${offset})`
+            }
+            if (remove == insert) {
+                return `the delete text and the insert text is same (${remove}->${insert})`
+            }
+            return null
+        })
+    }
+
+    /**
+     * @returns The modified text
+     */
+    public apply(target: string): string | DeleteNonExistingText {
+        const t1 = target.slice(0, this.offset)
+        const deleted = target.slice(this.offset, this.offset + this.remove.length)
+        const t2 = target.slice(this.offset + this.remove.length)
+
+        if (deleted !== this.remove) {
+            return new DeleteNonExistingText(this.offset, this.remove, deleted)
+        }
+        return t1 + this.insert + t2
+    }
+
+    /**
+     * @returns The interval that the text to be modified by this edit
+     */
+    public interval(): Interval { return new Interval(this.offset, this.remove.length) }
+
+    public toString(): string {
+        return `${this.offset}: \"${this.remove || ""}\" -> \"${this.insert || ""}\"`
     }
 }
 
