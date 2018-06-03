@@ -89,6 +89,24 @@ describe('SegmentHistory', () => {
             (() => new SegmentHistory(new Map([["", new Segment(0, "xxx", Status.Enabled)]]),
                                       new ImmutableDirectedGraph(new Set(), new Map()), "x")).should.throw()
         })
+        u.it('invalid if the enabled segments are overlapped', () => {
+            (() => new SegmentHistory(new Map([["0", new Segment(0, "xx", Status.Enabled)], ["2", new Segment(1, "xx", Status.Enabled)]]),
+                                      new ImmutableDirectedGraph(new Set(), new Map()), "xxxx")).should.throw();
+            (() => new SegmentHistory(new Map([["0", new Segment(0, "xxx", Status.Enabled)], ["1", new Segment(1, "xxx", Status.Enabled)]]),
+                                      new ImmutableDirectedGraph(new Set(), new Map()), "xxxx")).should.throw()
+        })
+        u.it('invalid if the enabled segment is closed', () => {
+            (() => new SegmentHistory(new Map([["0", new Segment(0, "xxx", Status.Disabled)]]),
+                                      new ImmutableDirectedGraph(new Set(["0"]), new Map()), "xxxx")).should.not.throw();
+            (() => new SegmentHistory(new Map([["0", new Segment(0, "xxx", Status.Enabled)]]),
+                                      new ImmutableDirectedGraph(new Set(["0"]), new Map()), "xxxx")).should.throw()
+        })
+        u.it('invalid if the closing graph has non-existing segment', () => {
+            (() => new SegmentHistory(new Map([["0", new Segment(0, "xxx", Status.Disabled)]]),
+                                      new ImmutableDirectedGraph(new Set(["0"]), new Map()), "xxxx")).should.not.throw();
+            (() => new SegmentHistory(new Map(),
+                                      new ImmutableDirectedGraph(new Set(["0"]), new Map()), "xxxx")).should.throw()
+        })
     })
     describe('#apply_diff', () => {
         u.it('insert text and update segments', () => {

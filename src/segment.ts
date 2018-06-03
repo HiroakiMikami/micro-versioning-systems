@@ -161,6 +161,28 @@ class SegmentHistory extends ConstrainedData {
                     return `the text and the text of the enabled segment are different (the text: ${t}, the enabled segment: ${segment})`
                 }
             }
+            /* invalid if two different enabled segments are overlapped */
+            for (const [id1, s1] of segments) {
+                if (s1.status == Status.Disabled) continue
+                for (const [id2, s2] of segments) {
+                    if (id1 === id2) continue
+                    if (s2.status === Status.Disabled) continue
+
+                    if (s1.interval().intersect(s2.interval()) !== null) {
+                        return `the enabled segments are overlapped (${id1}: ${s1} and ${id2}: ${s2}`
+                    }
+                }
+            }
+            /* invalid if the closing contains the enablsed segment */
+            for (const id of closing.vertices) {
+                if (!segments.has(id) ) {
+                    return `the closed segment is not found (${id})`
+                }
+                if (segments.get(id).status === Status.Enabled) {
+                    return `the enabled segment is closed (${id}: ${segments.has(id)})`
+                }
+            }
+
             return null
         })
     }
