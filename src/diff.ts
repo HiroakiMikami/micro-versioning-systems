@@ -215,9 +215,23 @@ class Diff extends ConstrainedData {
                 offset =  Math.min(i_d.begin, i_c.begin) //< update a offset
 
                 // update insert if c's insert is remained in the final text
-                if (i_c.begin < i_d.begin) {
+                if (i_c.begin < i_d.begin && i_d.end < i_c.end) {
+                    /*
+                     * [conflicted]
+                     *   [delta]
+                     */
+                    insert = c.insert.slice(0, i_d.begin - i_c.begin) + insert + c.insert.slice(i_d.end - i_c.begin)
+                } else if (i_c.begin < i_d.begin) {
+                    /*
+                     * [conflicted]
+                     *         [delta]
+                     */
                     insert = c.insert.slice(0, i_d.begin - i_c.begin) + insert
                 } else if (i_d.end < i_c.end) {
+                    /*
+                     *   [conflicted]
+                     * [delta]
+                     */
                     insert = insert + c.insert.slice(i_d.end - i_c.begin)
                 }
 

@@ -193,6 +193,17 @@ describe('Diff', () => {
              * => `d31.then(d32)` should modify a text "ay" to "ax"
              */
             d31.then(d32).should.deep.equal(new Diff([new Delta(1, "y", "x")]))
+
+            const d41 = new Diff([new Delta(0, "", "xz")])
+            const d42 = new Diff([new Delta(1, "", "y")])
+            /* Example,
+             * - the target text: ""
+             * - d41 is applied: "xz"
+             * - d42 is applied: "xyz"
+             *
+             * => `d41.then(d42)` should modify a text "" to "xyz"
+             */
+            d41.then(d42).should.deep.equal(new Diff([new Delta(0, "", "xyz")]))
         })
         u.it('merge two diffs with conflicts into one diff (replace)', () => {
             const d11 = new Diff([new Delta(1, "s", "xx")])

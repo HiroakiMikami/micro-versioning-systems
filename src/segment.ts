@@ -15,12 +15,14 @@ enum Operation { Enable, Disable }
 class ApplyResult {
     /**
      * @param newHistory The new history
+     * @param diff The difference between the previous source code and the text of `newHistory`
      * @param splittedSegments The set of segments that are splitted by the operation
      * @param remove The list of segments that are deleted by the operation
      * @param insert The list of segments that are inserted by the operation
      */
     constructor(
         public readonly newHistory: SegmentHistory,
+        public readonly diff: Diff,
         public readonly splittedSegments: ReadonlyMap<string, ReadonlyArray<string>>,
         public readonly remove: ReadonlyArray<string>,
         public readonly insert: ReadonlyArray<string>
@@ -351,7 +353,7 @@ class SegmentHistory extends ConstrainedData {
         }
         remove.reverse()
         insert.reverse()
-        return new ApplyResult(new SegmentHistory(newSegments, to_immutable(newClosing), newText), splittedIds, remove, insert)
+        return new ApplyResult(new SegmentHistory(newSegments, to_immutable(newClosing), newText), diff, splittedIds, remove, insert)
     }
     /**
      * Applies operations to the source code, and updates the history
@@ -365,6 +367,7 @@ class SegmentHistory extends ConstrainedData {
         let remove = []
         let insert = [] as string[]
         let newText = this.text
+        let diff = new Diff([])
 
         for (const [op, id] of operations) {
             const segment = newSegments.get(id) // TODO error handling
@@ -386,11 +389,18 @@ class SegmentHistory extends ConstrainedData {
                 }
 
                 newSegments.set(id, newSegment)
+
+                /* Update newText and diff */
                 const tmp = delta.apply(newText)
                 if (tmp instanceof DeleteNonExistingText) {
                     return tmp
                 }
                 newText = tmp
+                const newDiff = diff.then(new Diff([delta]))
+                if (newDiff instanceof DeleteNonExistingText) {
+                    return newDiff
+                }
+                diff = newDiff
                 if (op == Operation.Disable) {
                     remove.push(id)
                 } else {
@@ -400,7 +410,7 @@ class SegmentHistory extends ConstrainedData {
             }
         }
 
-        return new ApplyResult(new SegmentHistory(newSegments, to_immutable(newClosing), newText), new Map(), remove, insert)
+        return new ApplyResult(new SegmentHistory(newSegments, to_immutable(newClosing), newText), diff, new Map(), remove, insert)
     }
 }
 
