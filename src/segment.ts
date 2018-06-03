@@ -2,8 +2,7 @@ import * as uuidv4 from "uuid/v4"
 
 import { ConstrainedData, Interval } from "./common"
 import { Delta, Diff, DeleteNonExistingText } from "./diff"
-import { ImmutableDirectedGraph, MutableDirectedGraph } from "./graph"
-//import { ImmutableDirectedGraph, MutableDirectedGraph } from "./graph"
+import { ImmutableDirectedGraph, to_immutable, to_mutable } from "./graph"
 
 /** The segment status */
 enum Status { Enabled, Disabled }
@@ -22,9 +21,9 @@ class ApplyResult {
      */
     constructor(
         public readonly newHistory: SegmentHistory,
-        public readonly splittedSegments: Map<string, string[]>,
-        public readonly remove: Array<string>,
-        public readonly insert: Array<string>
+        public readonly splittedSegments: ReadonlyMap<string, ReadonlyArray<string>>,
+        public readonly remove: ReadonlyArray<string>,
+        public readonly insert: ReadonlyArray<string>
     ) {}
 }
 
@@ -146,7 +145,7 @@ class SegmentHistory extends ConstrainedData {
      * @param text The current source code
      */
     constructor(
-        public readonly segments: Map<string, Segment>,
+        public readonly segments: ReadonlyMap<string, Segment>,
         public readonly closing: ImmutableDirectedGraph<string, number>,
         public readonly text: string
     ) {
@@ -174,7 +173,7 @@ class SegmentHistory extends ConstrainedData {
         deltas.reverse()
 
         let newSegments = new Map(this.segments)
-        let newClosing = new MutableDirectedGraph(new Set(this.closing.vertices), new Map(this.closing.edges))
+        let newClosing = to_mutable(this.closing)
         let splittedIds = new Map<string, string[]>()
         let remove = []
         let insert = []
@@ -352,7 +351,7 @@ class SegmentHistory extends ConstrainedData {
         }
         remove.reverse()
         insert.reverse()
-        return new ApplyResult(new SegmentHistory(newSegments, newClosing, newText), splittedIds, remove, insert)
+        return new ApplyResult(new SegmentHistory(newSegments, to_immutable(newClosing), newText), splittedIds, remove, insert)
     }
     /**
      * Applies operations to the source code, and updates the history
@@ -360,9 +359,9 @@ class SegmentHistory extends ConstrainedData {
      * @param operations The list of operations to be applied
      * @returns The result of applying diff
      */
-    public apply_operations(operations: [Operation, string][]): ApplyResult | DeleteNonExistingText {
+    public apply_operations(operations: ReadonlyArray<[Operation, string]>): ApplyResult | DeleteNonExistingText {
         let newSegments = new Map(this.segments)
-        let newClosing = new MutableDirectedGraph(new Set(this.closing.vertices), new Map(this.closing.edges))
+        let newClosing = to_mutable(this.closing)
         let remove = []
         let insert = [] as string[]
         let newText = this.text
@@ -401,7 +400,7 @@ class SegmentHistory extends ConstrainedData {
             }
         }
 
-        return new ApplyResult(new SegmentHistory(newSegments, newClosing, newText), new Map(), remove, insert)
+        return new ApplyResult(new SegmentHistory(newSegments, to_immutable(newClosing), newText), new Map(), remove, insert)
     }
 }
 

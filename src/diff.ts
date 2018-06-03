@@ -85,7 +85,7 @@ class Diff extends ConstrainedData {
     /**
      * @param deltas The textual edits to be applied
      */
-    constructor (public readonly deltas: Delta[]) {
+    constructor (public readonly deltas: ReadonlyArray<Delta>) {
         super(() => {
             let i = new Interval(-1, 0)
             for (const delta of deltas) {

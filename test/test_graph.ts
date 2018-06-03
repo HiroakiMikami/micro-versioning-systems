@@ -2,7 +2,7 @@ import * as chai from 'chai'
 chai.should()
 
 import * as u from "./utils"
-import { ImmutableDirectedGraph, MutableDirectedGraph } from '../src/graph'
+import { ImmutableDirectedGraph, MutableDirectedGraph, to_mutable, to_immutable } from '../src/graph'
 
 describe('DirectedGraph', () => {
     describe('validation', () => {
@@ -98,19 +98,28 @@ describe('MutableDirectedGraph', () => {
             g.edges.should.deep.equal(new Map())
         })
     })
-    describe('#immutable', () => {
-        u.it('generate ImmutableDirectedGraph', () => {
-            const g = new MutableDirectedGraph(new Set([0, 1]), new Map([[0, new Map([[1, ""]])]]));
-            (g.immutable() instanceof ImmutableDirectedGraph).should.equal(true)
-        })
-        u.it('the returned immutable graph should not be modified when the mutable graph is modified', () => {
-            const g = new MutableDirectedGraph(new Set([0, 1]), new Map([[0, new Map([[1, ""]])]]))
-            const immutable = g.immutable()
-            g.addVertex(2)
-            g.addEdge(1, 0, "")
-            g.addEdge(0, 2, "")
-            immutable.vertices.should.deep.equal(new Set([0, 1]))
-            immutable.edges.should.deep.equal(new Map([[0, new Map([[1, ""]])]]))
-        })
+})
+
+describe('#to_mutable', () => {
+    u.it('the original immutable graph should not be modified when the returned mutable graph is modified', () => {
+        const g = new ImmutableDirectedGraph(new Set([0, 1]), new Map([[0, new Map([[1, ""]])]]))
+        const mutable = to_mutable(g)
+        mutable.addVertex(2)
+        mutable.addEdge(1, 0, "")
+        mutable.addEdge(0, 2, "")
+        g.vertices.should.deep.equal(new Set([0, 1]))
+        g.edges.should.deep.equal(new Map([[0, new Map([[1, ""]])]]))
+    })
+})
+
+describe('#to_immutable', () => {
+    u.it('the returned immutable graph should not be modified when the mutable graph is modified', () => {
+        const g = new MutableDirectedGraph(new Set([0, 1]), new Map([[0, new Map([[1, ""]])]]))
+        const immutable = to_immutable(g)
+        g.addVertex(2)
+        g.addEdge(1, 0, "")
+        g.addEdge(0, 2, "")
+        immutable.vertices.should.deep.equal(new Set([0, 1]))
+        immutable.edges.should.deep.equal(new Map([[0, new Map([[1, ""]])]]))
     })
 })
