@@ -97,6 +97,7 @@ describe('SegmentHistory', () => {
             r2.newHistory.text.should.equal("xxx")
             r2.insert.length.should.equal(1)
             r2.remove.length.should.equal(0)
+            r2.diff.should.deep.equal(new Diff([new Delta(0, "", "xxx")]))
             Array.from(r2.newHistory.segments.values()).should.deep.equal([new Segment(0, "xxx", Status.Enabled)])
 
             {
@@ -106,6 +107,7 @@ describe('SegmentHistory', () => {
                 r.newHistory.segments.get(r.insert[0]).should.deep.equal(new Segment(1, "yyy", Status.Enabled))
                 r.remove.length.should.equal(0)
                 r.newHistory.text.should.equal("xyyyxx")
+                r.diff.should.deep.equal(new Diff([new Delta(1, "", "yyy")]))
                 Array.from(r.newHistory.segments.values()).should.deep.equal([new Segment(0, "x", Status.Enabled),
                                                                               new Segment(4, "xx", Status.Enabled),
                                                                               new Segment(1, "yyy", Status.Enabled)])
@@ -118,6 +120,7 @@ describe('SegmentHistory', () => {
                 r.newHistory.segments.get(r.insert[0]).should.deep.equal(new Segment(0, "yyy", Status.Enabled))
                 r.remove.length.should.equal(0)
                 r.newHistory.text.should.equal("yyyxxx")
+                r.diff.should.deep.equal(new Diff([new Delta(0, "", "yyy")]))
                 Array.from(r.newHistory.segments.values()).should.deep.equal([new Segment(3, "xxx", Status.Enabled),
                                                                               new Segment(0, "yyy", Status.Enabled)])
             }
@@ -129,6 +132,7 @@ describe('SegmentHistory', () => {
                 r.newHistory.segments.get(r.insert[0]).should.deep.equal(new Segment(3, "yyy", Status.Enabled))
                 r.remove.length.should.equal(0)
                 r.newHistory.text.should.equal("xxxyyy")
+                r.diff.should.deep.equal(new Diff([new Delta(3, "", "yyy")]))
                 Array.from(r.newHistory.segments.values()).should.deep.equal([new Segment(0, "xxx", Status.Enabled),
                                                                               new Segment(3, "yyy", Status.Enabled)])
             }
@@ -142,6 +146,7 @@ describe('SegmentHistory', () => {
                 r3.insert.length.should.equal(0)
                 r3.remove.length.should.equal(1)
                 r3.newHistory.segments.get(r3.remove[0]).should.deep.equal(new Segment(1, "234", Status.Disabled))
+                r3.diff.should.deep.equal(new Diff([new Delta(1, "234", "")]))
                 Array.from(r3.newHistory.segments.values()).should.deep.equal([new Segment(3, "xxx", Status.Enabled), new Segment(1, "234", Status.Disabled)])
             }
             {
@@ -154,6 +159,7 @@ describe('SegmentHistory', () => {
                 r3.remove.length.should.equal(2)
                 r3.newHistory.segments.get(r3.remove[0]).should.deep.equal(new Segment(2, "x", Status.Disabled))
                 r3.newHistory.segments.get(r3.remove[1]).should.deep.equal(new Segment(2, "12", Status.Disabled))
+                r3.diff.should.deep.equal(new Diff([new Delta(2, "x12", "")]))
                 Array.from(r3.newHistory.segments.values()).should.deep.equal([new Segment(2, "12", Status.Disabled),
                                                                                new Segment(2, "3456", Status.Enabled),
                                                                                new Segment(2, "x", Status.Disabled)])
@@ -168,6 +174,7 @@ describe('SegmentHistory', () => {
                 r3.remove.length.should.equal(2)
                 r3.newHistory.segments.get(r3.remove[0]).should.deep.equal(new Segment(4, "56", Status.Disabled))
                 r3.newHistory.segments.get(r3.remove[1]).should.deep.equal(new Segment(4, "x", Status.Disabled))
+                r3.diff.should.deep.equal(new Diff([new Delta(4, "56x", "")]))
                 Array.from(r3.newHistory.segments.values()).should.deep.equal([new Segment(0, "1234", Status.Enabled),
                                                                                new Segment(4, "56", Status.Disabled),
                                                                                new Segment(4, "x", Status.Disabled)])
@@ -181,6 +188,7 @@ describe('SegmentHistory', () => {
                 r3.insert.length.should.equal(0)
                 r3.remove.length.should.equal(1)
                 r3.newHistory.segments.get(r3.remove[0]).should.deep.equal(new Segment(1, "234", Status.Disabled))
+                r3.diff.should.deep.equal(new Diff([new Delta(1, "234", "")]))
                 Array.from(r3.newHistory.segments.values()).should.deep.equal([new Segment(0, "1", Status.Enabled),
                                                                                new Segment(1, "234", Status.Disabled),
                                                                                new Segment(1, "56", Status.Enabled)])
@@ -196,6 +204,7 @@ describe('SegmentHistory', () => {
                 r3.newHistory.segments.get(r3.remove[0]).should.deep.equal(new Segment(1, "x", Status.Disabled))
                 r3.newHistory.segments.get(r3.remove[1]).should.deep.equal(new Segment(1, "123", Status.Disabled))
                 r3.newHistory.segments.get(r3.remove[2]).should.deep.equal(new Segment(1, "x", Status.Disabled))
+                r3.diff.should.deep.equal(new Diff([new Delta(1, "x123x", "")]))
                 Array.from(r3.newHistory.segments.values()).should.deep.equal([new Segment(1, "123", Status.Disabled),
                                                                                new Segment(1, "x", Status.Disabled),
                                                                                new Segment(1, "x", Status.Disabled)])
@@ -209,6 +218,7 @@ describe('SegmentHistory', () => {
                 r3.insert.length.should.equal(0)
                 r3.remove.length.should.equal(1)
                 r3.newHistory.segments.get(r3.remove[0]).should.deep.equal(new Segment(0, "xx", Status.Disabled))
+                r3.diff.should.deep.equal(new Diff([new Delta(0, "xx", "")]))
                 Array.from(r3.newHistory.segments.values()).should.deep.equal([new Segment(2, "123", Status.Disabled),
                                                                                new Segment(0, "xx", Status.Disabled)])
             }
@@ -222,6 +232,7 @@ describe('SegmentHistory', () => {
                 r2.newHistory.segments.get(r2.insert[0]).should.deep.equal(new Segment(1, "xxx", Status.Enabled))
                 r2.remove.length.should.equal(1)
                 r2.newHistory.segments.get(r2.remove[0]).should.deep.equal(new Segment(1, "234", Status.Disabled))
+                r2.diff.should.deep.equal(new Diff([new Delta(1, "234", "xxx")]))
                 Array.from(r2.newHistory.segments.values()).should.deep.equal([new Segment(1, "234", Status.Disabled), new Segment(1, "xxx", Status.Enabled)])
             }
         })
@@ -268,6 +279,7 @@ describe('SegmentHistory', () => {
                 r3.remove.length.should.equal(2)
                 r3.newHistory.segments.get(r3.remove[0]).should.deep.equal(new Segment(1, "23", Status.Disabled))
                 r3.newHistory.segments.get(r3.remove[1]).should.deep.equal(new Segment(2, "5", Status.Disabled))
+                r3.diff.should.deep.equal(new Diff([new Delta(1, "23", ""), new Delta(4, "5", "xx"), new Delta(6, "", "yy")]))
                 Array.from(r3.newHistory.segments.values()).should.deep.equal([new Segment(5, "yy", Status.Enabled),
                                                                                new Segment(2, "5", Status.Disabled),
                                                                                new Segment(4, "6", Status.Enabled),
@@ -292,6 +304,7 @@ describe('SegmentHistory', () => {
             r3.remove.length.should.equal(1)
             r3.remove[0].should.equal(r2.insert[0])
             r3.newHistory.text.should.equal("")
+            r3.diff.should.deep.equal(new Diff([new Delta(0, "456", "")]))
             Array.from(r3.newHistory.segments.values()).should.deep.equal([new Segment(0, "123", Status.Disabled), new Segment(0, "456", Status.Disabled)])
 
             const r4 = r2.newHistory.apply_operations([[Operation.Enable, r2.remove[0]]]) as ApplyResult
@@ -299,12 +312,12 @@ describe('SegmentHistory', () => {
             r4.insert[0].should.equal(r2.remove[0])
             r4.remove.length.should.equal(0)
             r4.newHistory.text.should.equal("123456")
+            r4.diff.should.deep.equal(new Diff([new Delta(0, "", "123")]))
             Array.from(r4.newHistory.segments.values()).should.deep.equal([new Segment(0, "123", Status.Enabled), new Segment(3, "456", Status.Enabled)])
         })
         u.it('reopen the closed segment', () => {
             const h1 = new SegmentHistory(new Map(), new ImmutableDirectedGraph(new Set(), new Map()), "123")
             const r2 = h1.apply_diff(new Diff([new Delta(1, "2", "")])) as ApplyResult
-            //const s1 = r2.remove[0]
             const r3 = r2.newHistory.apply_diff(new Diff([new Delta(0, "13", "")])) as ApplyResult
             const s2 = r3.remove[0]
             const r4 = r3.newHistory.apply_operations([[Operation.Enable, r3.remove[0]]]) as ApplyResult
@@ -313,6 +326,7 @@ describe('SegmentHistory', () => {
             r4.remove.length.should.equal(0)
 
             r4.newHistory.text.should.equal("13")
+            r4.diff.should.deep.equal(new Diff([new Delta(0, "", "13")]))
             Array.from(r4.newHistory.segments.values()).should.deep.equal([new Segment(1, "2", Status.Disabled),
                                                                            new Segment(0, "13", Status.Enabled)])
             r4.newHistory.closing.vertices.size.should.equal(1)
@@ -327,6 +341,7 @@ describe('SegmentHistory', () => {
             r3.remove.length.should.equal(1)
             r3.remove[0].should.equal(r2.insert[0])
             r3.newHistory.text.should.equal("123")
+            r3.diff.should.deep.equal(new Diff([new Delta(0, "456", "123")]))
             Array.from(r3.newHistory.segments.values()).should.deep.equal([new Segment(0, "123", Status.Enabled), new Segment(3, "456", Status.Disabled)])
         })
     })
