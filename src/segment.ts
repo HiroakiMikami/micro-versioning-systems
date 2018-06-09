@@ -1,13 +1,8 @@
 import * as uuidv4 from "uuid/v4"
 
-import { ConstrainedData, Interval } from "./common"
+import { ConstrainedData, Interval, Status, Operation } from "./common"
 import { Delta, Diff, DeleteNonExistingText } from "./diff"
 import { ImmutableDirectedGraph, to_immutable, to_mutable } from "./graph"
-
-/** The segment status */
-enum Status { Enabled, Disabled }
-/** The segment operations */
-enum Operation { Enable, Disable }
 
 /**
  * A result of the operation

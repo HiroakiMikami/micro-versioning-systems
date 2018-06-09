@@ -2,10 +2,10 @@ import * as chai from 'chai'
 const should = chai.should()
 
 import * as u from "./utils"
-import { Interval } from '../src/common'
+import { Interval, Status, Operation } from '../src/common'
 import { Delta, Diff, DeleteNonExistingText } from '../src/diff'
 import { ImmutableDirectedGraph } from '../src/graph'
-import { Segment, SegmentHistory, Status, Operation, ApplyResult } from '../src/segment'
+import { Segment, SegmentHistory, ApplyResult } from '../src/segment'
 
 describe('Segment', () => {
     describe('validation', () => {
