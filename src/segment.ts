@@ -1,13 +1,8 @@
 import * as uuidv4 from "uuid/v4"
 
-import { ConstrainedData, Interval } from "./common"
+import { ConstrainedData, Interval, Status, Operation } from "./common"
 import { Delta, Diff, DeleteNonExistingText } from "./diff"
 import { ImmutableDirectedGraph, to_immutable, to_mutable } from "./graph"
-
-/** The segment status */
-enum Status { Enabled, Disabled }
-/** The segment operations */
-enum Operation { Enable, Disable }
 
 /**
  * A result of the operation
@@ -187,15 +182,12 @@ class SegmentHistory extends ConstrainedData {
         })
     }
     /**
-     * Applies diff to the source code, and updates the history
+     * Applies delta to the source code, and updates the history
      *
-     * @param diff The diff to be applied
+     * @param delta The delta to be applied
      * @returns The result of applying diff
      */
-    public apply_diff(diff: Diff): ApplyResult | DeleteNonExistingText {
-        const deltas = Array.from(diff.deltas)
-        deltas.reverse()
-
+    public apply_delta(delta: Delta): ApplyResult | DeleteNonExistingText {
         let newSegments = new Map(this.segments)
         let newClosing = to_mutable(this.closing)
         let splittedIds = new Map<string, string[]>()
@@ -213,169 +205,168 @@ class SegmentHistory extends ConstrainedData {
             return id
         }
 
-        for (const delta of deltas) {
-            let toBeSplitted = []
-            let toBeRemoved = new Map<number, string>()
-            let toBeClosed = new Set<[number, string]>()
+        let toBeSplitted = []
+        let toBeRemoved = new Map<number, string>()
+        let toBeClosed = new Set<[number, string]>()
 
-            /* update text */
-            const result = delta.apply(newText)
-            if (result instanceof DeleteNonExistingText) {
-                return result
-            } else {
-                newText = result
-            }
+        /* update text */
+        const result = delta.apply(newText)
+        if (result instanceof DeleteNonExistingText) {
+            return result
+        } else {
+            newText = result
+        }
 
-            /* update segment */
-            const direction = delta.insert.length - delta.remove.length
-            const tmp = new Map<string, Map<string, Segment>>()
-            for (const [id, segment] of newSegments) {
-                if (segment.status == Status.Enabled) {
-                    // Update enabled segment
-                    if (delta.remove.length === 0) {
-                        // Insert
-                        if (delta.offset <= segment.offset) {
-                            /*
-                             *  ||    [segment]
-                             * delta
-                             */
-                            newSegments.set(id, segment.move(direction))
-                        } else if (delta.offset < segment.interval().end) {
-                            /*
-                             * [segment]
-                             *    ||
-                             *   delta
-                             */
-                            const [t1, t2] = segment.split([delta.offset])
-                            const id1 = mkId()
-                            const id2 = mkId()
-                            tmp.set(id, new Map([[id1, t1], [id2, t2.move(direction)]]))
-                        }
-                    } else {
-                        // Delte / Replace
-                        if (delta.interval().end <= segment.offset) {
-                            /*
-                             * [delta]
-                             *         [segment]
-                             */
-                            newSegments.set(id, segment.move(direction))
-                        } else if (delta.offset < segment.offset && delta.interval().end < segment.interval().end) {
-                            /*
-                             * [delta]
-                             *     [segment]
-                             */
-                            const [d, t1] = segment.split([delta.interval().end])
-                            const id1 = mkId()
-                            const id2 = mkId()
-                            tmp.set(id, new Map([[id1, new Segment(delta.offset, d.text, Status.Disabled)], [id2, t1.move(direction)]]))
-
-                            toBeSplitted.push(segment.offset)
-                            toBeRemoved.set(segment.offset, id1)
-                        } else if (segment.offset < delta.offset && delta.offset < segment.interval().end && segment.interval().end <= delta.interval().end) {
-                            /*
-                             *     [delta]
-                             * [segment]
-                             */
-                            const [t1, d] = segment.split([delta.offset])
-                            const id1 = mkId()
-                            const id2 = mkId()
-                            tmp.set(id, new Map([[id1, t1], [id2, new Segment(delta.offset, d.text, Status.Disabled)]]))
-
-                            toBeSplitted.push(segment.interval().end)
-                            toBeRemoved.set(delta.offset, id2)
-                        } else if (segment.offset < delta.offset && delta.interval().end < segment.interval().end) {
-                            /*
-                             *  [delta]
-                             * [segment]
-                             */
-                            const [t1, d, t2] = segment.split([delta.offset, delta.interval().end])
-                            const id1 = mkId()
-                            const id2 = mkId()
-                            const id3 = mkId()
-                            tmp.set(id, new Map([[id1, t1], [id2, new Segment(delta.offset, d.text, Status.Disabled)], [id3, t2.move(direction)]]))
-
-                            toBeRemoved.set(delta.offset, id2)
-                        } else if (delta.offset <= segment.offset && segment.interval().end <= delta.interval().end) {
-                            /*
-                             * [  delta  ]
-                             *  [segment]
-                             */
-                            newSegments.set(id, new Segment(delta.offset, segment.text, Status.Disabled))
-
-                            toBeSplitted.push(segment.offset, segment.interval().end)
-                            toBeRemoved.set(segment.offset, id)
-                        }
+        /* update segment */
+        const direction = delta.insert.length - delta.remove.length
+        const tmp = new Map<string, Map<string, Segment>>()
+        for (const [id, segment] of newSegments) {
+            if (segment.status == Status.Enabled) {
+                // Update enabled segment
+                if (delta.remove.length === 0) {
+                    // Insert
+                    if (delta.offset <= segment.offset) {
+                        /*
+                         *  ||    [segment]
+                         * delta
+                         */
+                        newSegments.set(id, segment.move(direction))
+                    } else if (delta.offset < segment.interval().end) {
+                        /*
+                         * [segment]
+                         *    ||
+                         *   delta
+                         */
+                        const [t1, t2] = segment.split([delta.offset])
+                        const id1 = mkId()
+                        const id2 = mkId()
+                        tmp.set(id, new Map([[id1, t1], [id2, t2.move(direction)]]))
                     }
                 } else {
-                    // Disabled
+                    // Delte / Replace
                     if (delta.interval().end <= segment.offset) {
                         /*
                          * [delta]
                          *         [segment]
                          */
                         newSegments.set(id, segment.move(direction))
-                    } else if (delta.offset < segment.offset && segment.offset <= delta.interval().end) {
+                    } else if (delta.offset < segment.offset && delta.interval().end < segment.interval().end) {
+                        /*
+                         * [delta]
+                         *     [segment]
+                         */
+                        const [d, t1] = segment.split([delta.interval().end])
+                        const id1 = mkId()
+                        const id2 = mkId()
+                        tmp.set(id, new Map([[id1, new Segment(delta.offset, d.text, Status.Disabled)], [id2, t1.move(direction)]]))
+
+                        toBeSplitted.push(segment.offset)
+                        toBeRemoved.set(segment.offset, id1)
+                    } else if (segment.offset < delta.offset && delta.offset < segment.interval().end && segment.interval().end <= delta.interval().end) {
+                        /*
+                         *     [delta]
+                         * [segment]
+                         */
+                        const [t1, d] = segment.split([delta.offset])
+                        const id1 = mkId()
+                        const id2 = mkId()
+                        tmp.set(id, new Map([[id1, t1], [id2, new Segment(delta.offset, d.text, Status.Disabled)]]))
+
+                        toBeSplitted.push(segment.interval().end)
+                        toBeRemoved.set(delta.offset, id2)
+                    } else if (segment.offset < delta.offset && delta.interval().end < segment.interval().end) {
+                        /*
+                         *  [delta]
+                         * [segment]
+                         */
+                        const [t1, d, t2] = segment.split([delta.offset, delta.interval().end])
+                        const id1 = mkId()
+                        const id2 = mkId()
+                        const id3 = mkId()
+                        tmp.set(id, new Map([[id1, t1], [id2, new Segment(delta.offset, d.text, Status.Disabled)], [id3, t2.move(direction)]]))
+
+                        toBeRemoved.set(delta.offset, id2)
+                    } else if (delta.offset <= segment.offset && segment.interval().end <= delta.interval().end) {
                         /*
                          * [  delta  ]
                          *  [segment]
                          */
-                        newSegments.set(id, segment.move(delta.offset - segment.offset))
-
-                        // Close
-                        toBeClosed.add([segment.offset, id])
-                    }
-                }
-            }
-
-            if (tmp.size !== 0) {
-                for (const [id, newIds] of tmp) {
-                    newSegments.delete(id)
-                    splittedIds.set(id, [])
-                    for (const [nid, nsegment] of newIds) {
-                        newSegments.set(nid, nsegment)
-                        splittedIds.get(id).push(nid)
-                    }
-                }
-            }
-
-            if (delta.remove.length !== 0) {
-                const segment = new Segment(delta.offset, delta.remove, Status.Disabled)
-                const ss = segment.split(toBeSplitted)
-                ss.reverse()
-                for (const segment of ss) {
-                    let id = null
-                    if (toBeRemoved.has(segment.offset)) {
-                        id = toBeRemoved.get(segment.offset)
-
-                    } else {
-                        id = mkId()
                         newSegments.set(id, new Segment(delta.offset, segment.text, Status.Disabled))
-                    }
-                    remove.push(id)
-                    const s = newSegments.get(id)
-                    const begin = segment.offset
-                    const end = begin + s.text.length
 
-                    /* Closing */
-                    for (const elem of toBeClosed) { // TODO inefficient (O(#Segment^2) in the worst case)
-                        if (begin <= elem[0] && elem[0] < end) {
-                            newClosing.addVertex(id)
-                            newClosing.addVertex(elem[1])
-                            newClosing.addEdge(id, elem[1], elem[0] - begin)
-                            toBeClosed.delete(elem)
-                        }
+                        toBeSplitted.push(segment.offset, segment.interval().end)
+                        toBeRemoved.set(segment.offset, id)
+                    }
+                }
+            } else {
+                // Disabled
+                if (delta.interval().end <= segment.offset) {
+                    /*
+                     * [delta]
+                     *         [segment]
+                     */
+                    newSegments.set(id, segment.move(direction))
+                } else if (delta.offset < segment.offset && segment.offset <= delta.interval().end) {
+                    /*
+                     * [  delta  ]
+                     *  [segment]
+                     */
+                    newSegments.set(id, segment.move(delta.offset - segment.offset))
+
+                    // Close
+                    toBeClosed.add([segment.offset, id])
+                }
+            }
+        }
+
+        if (tmp.size !== 0) {
+            for (const [id, newIds] of tmp) {
+                newSegments.delete(id)
+                splittedIds.set(id, [])
+                for (const [nid, nsegment] of newIds) {
+                    newSegments.set(nid, nsegment)
+                    splittedIds.get(id).push(nid)
+                }
+            }
+        }
+
+        if (delta.remove.length !== 0) {
+            const segment = new Segment(delta.offset, delta.remove, Status.Disabled)
+            const ss = segment.split(toBeSplitted)
+            ss.reverse()
+            for (const segment of ss) {
+                let id = null
+                if (toBeRemoved.has(segment.offset)) {
+                    id = toBeRemoved.get(segment.offset)
+                } else {
+                    id = mkId()
+                    newSegments.set(id, new Segment(delta.offset, segment.text, Status.Disabled))
+                }
+                remove.push(id)
+                const s = newSegments.get(id)
+                const begin = segment.offset
+                const end = begin + s.text.length
+
+                /* Closing */
+                for (const elem of toBeClosed) { // TODO inefficient (O(#Segment^2) in the worst case)
+                    if (begin < elem[0] && elem[0] <= end) {
+                        newClosing.addVertex(id)
+                        newClosing.addVertex(elem[1])
+                        newClosing.addEdge(id, elem[1], elem[0] - begin)
+                        toBeClosed.delete(elem)
                     }
                 }
             }
-            if (delta.insert.length !== 0) {
-                const id = mkId()
-                newSegments.set(id, new Segment(delta.offset, delta.insert, Status.Enabled))
-                insert.push(id)
-            }
+        }
+        if (delta.insert.length !== 0) {
+            const id = mkId()
+            newSegments.set(id, new Segment(delta.offset, delta.insert, Status.Enabled))
+            insert.push(id)
         }
         remove.reverse()
         insert.reverse()
-        return new ApplyResult(new SegmentHistory(newSegments, to_immutable(newClosing), newText), diff, splittedIds, remove, insert)
+        return new ApplyResult(
+            new SegmentHistory(newSegments, to_immutable(newClosing), newText),
+            new Diff([delta]), splittedIds, remove, insert)
     }
     /**
      * Applies operations to the source code, and updates the history
@@ -397,15 +388,34 @@ class SegmentHistory extends ConstrainedData {
             if (result !== null) {
                 const [delta, newSegment] = result
 
-                const toBeReopened = newClosing.successors(id)
+                const toBeReopened = new Map(newClosing.successors(id))
                 const direction = delta.insert.length - delta.remove.length
                 for (const [id2, segment2] of newSegments) {
                     if (toBeReopened.has(id2)) {
                         // Reopen
                         newSegments.set(id2, new Segment(newSegment.offset + toBeReopened.get(id2), segment2.text, segment2.status))
+                        newClosing.removeEdge(id, id2)
                     } else {
-                        if (segment.interval().end <= segment2.offset) {
-                            newSegments.set(id2, segment2.move(direction))
+                        if (segment2.status === Status.Enabled) {
+                            if (segment.interval().end <= segment2.offset) {
+                                newSegments.set(id2, segment2.move(direction))
+                            }
+                        } else {
+                            if (segment.status === Status.Enabled) {
+                                if (segment.offset < segment2.offset && segment2.offset <= segment.interval().end) {
+                                    newSegments.set(id2, segment2.move(segment.offset - segment2.offset))
+                                    // Close
+                                    newClosing.addVertex(id)
+                                    newClosing.addVertex(id2)
+                                    newClosing.addEdge(id, id2, segment2.offset - segment.offset)
+                                } else if (segment.interval().end <= segment2.offset) {
+                                    newSegments.set(id2, segment2.move(direction))
+                                }
+                            } else {
+                                if (segment.interval().end < segment2.offset) {
+                                    newSegments.set(id2, segment2.move(direction))
+                                }
+                            }
                         }
                     }
                 }
@@ -428,7 +438,10 @@ class SegmentHistory extends ConstrainedData {
                 } else {
                     insert.push(id)
                 }
-                newClosing.removeVertex(id)
+
+                if (op === Operation.Enable) {
+                    newClosing.removeVertex(id)
+                }
             }
         }
 

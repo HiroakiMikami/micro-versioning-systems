@@ -1,5 +1,10 @@
 import { AssertionError } from "assert";
 
+/** The segment status */
+enum Status { Enabled, Disabled }
+/** The segment operations */
+enum Operation { Enable, Disable }
+
 /** A flag to specify whether the system validates data structures or not */
 enum ExecutionMode {
     Release = "release",
@@ -65,4 +70,4 @@ class Interval extends ConstrainedData {
     }
 }
 
-export { ExecutionMode, ConstrainedData, Interval }
+export { ExecutionMode, ConstrainedData, Interval, Status, Operation }
