@@ -9,9 +9,9 @@ import { SegmentHistory, Operation, ApplyResult } from '../src/segment'
 describe('SegmentHistory (Complex Cases)', () => {
     u.it('case 1', () => {
         const h1 = new SegmentHistory(new Map(), new ImmutableDirectedGraph(new Set(), new Map()), "")
-        const r2 = h1.apply_diff(new Diff([new Delta(0, "", "myFontSize = 12;")])) as ApplyResult
-        const r3 = r2.newHistory.apply_diff(new Diff([new Delta(2, "Font", "Rectangle")])) as ApplyResult
-        const r4 = r3.newHistory.apply_diff(new Diff([new Delta(4, "ctangleSize", "gionArea")])) as ApplyResult
+        const r2 = h1.apply_delta(new Delta(0, "", "myFontSize = 12;")) as ApplyResult
+        const r3 = r2.newHistory.apply_delta(new Delta(2, "Font", "Rectangle")) as ApplyResult
+        const r4 = r3.newHistory.apply_delta(new Delta(4, "ctangleSize", "gionArea")) as ApplyResult
 
         r4.newHistory.text.should.equal("myRegionArea = 12;")
 
@@ -64,9 +64,9 @@ describe('SegmentHistory (Complex Cases)', () => {
     })
     u.it('case 2', () => {
         const h1 = new SegmentHistory(new Map(), new ImmutableDirectedGraph(new Set(), new Map()), "")
-        const r2 = h1.apply_diff(new Diff([new Delta(0, "", "xyz")])) as ApplyResult
-        const r3 = r2.newHistory.apply_diff(new Diff([new Delta(1, "y", "")])) as ApplyResult
-        const r4 = r3.newHistory.apply_diff(new Diff([new Delta(0, "xz", "")])) as ApplyResult
+        const r2 = h1.apply_delta(new Delta(0, "", "xyz")) as ApplyResult
+        const r3 = r2.newHistory.apply_delta(new Delta(1, "y", "")) as ApplyResult
+        const r4 = r3.newHistory.apply_delta(new Delta(0, "xz", "")) as ApplyResult
 
         r4.newHistory.text.should.equal("")
 

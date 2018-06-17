@@ -6,11 +6,7 @@ import { Status, Operation } from '../src/common'
 import { ImmutableDirectedGraph } from '../src/graph'
 import { Delta, Diff, DeleteNonExistingText } from '../src/diff'
 import { Segment, SegmentHistory } from '../src/segment'
-/*
-import { Interval, Status, Operation } from '../src/common'
-import { Delta, Diff, DeleteNonExistingText } from '../src/diff'
-*/
-import { Commit, CommitHistory, Relation, Result, FailToResolveDependency } from '../src/commit'
+import { Commit, CommitHistory, Relation, Result } from '../src/commit'
 
 describe('Commit', () => {
     describe('validation', () => {

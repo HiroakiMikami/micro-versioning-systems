@@ -202,7 +202,7 @@ class CommitHistory extends ConstrainedData {
         }
 
         for (const delta of deltas) {
-            const result = newHistory.apply_diff(new Diff([delta]))
+            const result = newHistory.apply_delta(delta)
             if (result instanceof DeleteNonExistingText) {
                 return result
             }
