@@ -5,7 +5,18 @@ import { Diff, DeleteNonExistingText } from "./diff"
 import { SegmentHistory } from "./segment"
 import { ImmutableDirectedGraph, to_mutable, to_immutable, MutableDirectedGraph } from "./graph"
 
+/**
+ * An edit of the source code
+ *
+ * @see https://doi.org/10.1145/3025453.3025597
+ */
 class Commit extends ConstrainedData {
+    /**
+     * @param remove The deleted segments
+     * @param insert The inserted segments
+     * @param timestamps The set of timestamps that this commit was updated
+     * @param status The current status
+     */
     constructor(public readonly remove: ReadonlyArray<string>,
                 public readonly insert: ReadonlyArray<string>,
                 public readonly timestamps: ReadonlySet<Date>,
@@ -28,6 +39,9 @@ class Commit extends ConstrainedData {
             return null
         })
     }
+    /**
+     * @returns The list of segment operations required to toggle this commit
+     */
     public toggle(): ReadonlyArray<[Operation, string]> {
         let retval: [Operation, string][] = []
         if (this.status === Status.Enabled) {
@@ -50,20 +64,43 @@ class Commit extends ConstrainedData {
     }
 }
 
+/** Relation between two commits */
 enum Relation { Depend, Exclusive }
 
+/** A result of the operation */
 class Result {
+    /**
+     * @param newHistory The new history
+     * @param diff The difference between the previous source code and the text of `newHistory`
+     * @param newCommits The set of commits that are added by the operation
+     */
     public constructor(public readonly newHistory: CommitHistory,
                        public readonly diff: Diff,
                        public readonly newCommits: ReadonlySet<string>) {}
 }
 
+/** A conflict occurred when failing to resolve dependencies between commits */
 class FailToResolveDependency {
+    /**
+     * @param commit The commit failed to resolve dependency
+     */
     public constructor(public readonly commit: string) {}
 }
 
+/**
+ * A source code history that uses commits
+ *
+ * @see https://doi.org/10.1145/3025453.3025597
+ */
 class CommitHistory extends ConstrainedData {
+    /** The inverse graph of the relation */
     private inverseRelation: ImmutableDirectedGraph<string, Relation>
+    /**
+     * @param history The current segment history
+     * @param commits The set of commits
+     * @param relation The relation between commits
+     * @param _inverseRelation The inverse graph of the relation (automatically computed if this argument is null or undefined)
+     */
     constructor (public readonly history: SegmentHistory, public readonly commits: ReadonlyMap<string, Commit>,
                  public readonly relation: ImmutableDirectedGraph<string, Relation>,
                  _inverseRelation?: ImmutableDirectedGraph<string, Relation>) {
@@ -140,6 +177,12 @@ class CommitHistory extends ConstrainedData {
             this.inverseRelation = to_immutable(g)
         }
     }
+    /**
+     * Apply the diff to the history
+     * @param date The date of this change
+     * @param diff The change of the source code
+     * @returns The result of this operation
+     */
     public apply_diff(date: Date, diff: Diff): Result | DeleteNonExistingText {
         const deltas = Array.from(diff.deltas)
         deltas.reverse()
@@ -257,6 +300,12 @@ class CommitHistory extends ConstrainedData {
                                             to_immutable(newRelation), to_immutable(newInverseRelation)),
                           diff, addedCommits)
     }
+
+    /**
+     * Toggle the commit
+     * @param id The commit to be toggled
+     * @returns The result of this operation
+     */
     public toggle(id: string): Result | DeleteNonExistingText | FailToResolveDependency {
         /* Collect commits to be toggled */
         let commitToBeToggled = new Map<string, Operation>()
@@ -337,6 +386,12 @@ class CommitHistory extends ConstrainedData {
                           result.diff, new Set())
     }
 
+    /**
+     * Add date to the commit
+     * @param date The date to be added
+     * @param commits The set of commit to be updated
+     * @returns the new history
+     */
     public addDate(date: Date, commits: Set<string>): CommitHistory {
         const newCommits = new Map(this.commits)
 
@@ -351,6 +406,10 @@ class CommitHistory extends ConstrainedData {
         return new CommitHistory(this.history, newCommits, this.relation, this.inverseRelation)
     }
 
+    /**
+     * Add dependency from `from` to `to`
+     * @returns the new history
+     */
     public addDependency(from: string, to: string): CommitHistory {
         const newRelation = to_mutable(this.relation)
         const newInverseRelation = to_mutable(this.inverseRelation)
@@ -365,6 +424,10 @@ class CommitHistory extends ConstrainedData {
         return new CommitHistory(this.history, this.commits,
                                  to_immutable(newRelation), to_immutable(newInverseRelation))
     }
+    /**
+     * Remove dependency from `from` to `to`
+     * @returns the new history
+     */
     public removeDependency(from: string, to: string): CommitHistory {
         const newRelation = to_mutable(this.relation)
         const newInverseRelation = to_mutable(this.inverseRelation)
