@@ -19,34 +19,27 @@ describe('SegmentHistory (Complex Cases)', () => {
             const toBeDisabled11= Array.from(r4.newHistory.segments).find(elem => elem[1].text == "Re")[0]
             const toBeDisabled12 = Array.from(r4.newHistory.segments).find(elem => elem[1].text == "ctangle")[0]
             const toBeEnabled = Array.from(r4.newHistory.segments).find(elem => elem[1].text == "Font")[0]
-            const r5 = r4.newHistory.apply_operations([[Operation.Disable, toBeDisabled11],
-                                                       [Operation.Disable, toBeDisabled12],
+            const r5 = r4.newHistory.apply_operations([[Operation.Disable, toBeDisabled12],
+                                                       [Operation.Disable, toBeDisabled11],
                                                        [Operation.Enable, toBeEnabled]]) as ApplyResult
             r5.diff.should.deep.equal(new Diff([new Delta(2, "Re", "Font")]))
             r5.newHistory.text.should.equal("myFontgionArea = 12;")
-
-            const toBeDisabled2 = Array.from(r5.newHistory.segments).find(elem => elem[1].text == "gionArea")[0]
-            const toBeEnabled2 = Array.from(r5.newHistory.segments).find(elem => elem[1].text == "Size")[0]
-            const r6 = r5.newHistory.apply_operations([[Operation.Disable, toBeDisabled2],
-                                                       [Operation.Enable, toBeEnabled2]]) as ApplyResult
-            r6.diff.should.deep.equal(new Diff([new Delta(6, "gionArea", "Size")]))
-            r6.newHistory.text.should.equal("myFontSize = 12;")
         }
         {
             const toBeDisabled1 = Array.from(r4.newHistory.segments).find(elem => elem[1].text == "gionArea")[0]
             const toBeEnabled11 = Array.from(r4.newHistory.segments).find(elem => elem[1].text == "ctangle")[0]
             const toBeEnabled12 = Array.from(r4.newHistory.segments).find(elem => elem[1].text == "Size")[0]
             const r5 = r4.newHistory.apply_operations([[Operation.Disable, toBeDisabled1],
-                                                       [Operation.Enable, toBeEnabled11],
-                                                       [Operation.Enable, toBeEnabled12]]) as ApplyResult
+                                                       [Operation.Enable, toBeEnabled12],
+                                                       [Operation.Enable, toBeEnabled11]]) as ApplyResult
             r5.diff.should.deep.equal(new Diff([new Delta(4, "gionArea", "ctangleSize")]))
             r5.newHistory.text.should.equal("myRectangleSize = 12;")
 
             const toBeDisabled21 = Array.from(r5.newHistory.segments).find(elem => elem[1].text == "Re")[0]
             const toBeDisabled22 = Array.from(r5.newHistory.segments).find(elem => elem[1].text == "ctangle")[0]
             const toBeEnabled2 = Array.from(r5.newHistory.segments).find(elem => elem[1].text == "Font")[0]
-            const r6 = r5.newHistory.apply_operations([[Operation.Disable, toBeDisabled21],
-                                                       [Operation.Disable, toBeDisabled22],
+            const r6 = r5.newHistory.apply_operations([[Operation.Disable, toBeDisabled22],
+                                                       [Operation.Disable, toBeDisabled21],
                                                        [Operation.Enable, toBeEnabled2]]) as ApplyResult
             r6.diff.should.deep.equal(new Diff([new Delta(2, "Rectangle", "Font")]))
             r6.newHistory.text.should.equal("myFontSize = 12;")
@@ -59,10 +52,10 @@ describe('SegmentHistory (Complex Cases)', () => {
             const toBeDisabled22 = Array.from(r4.newHistory.segments).find(elem => elem[1].text == "ctangle")[0]
             const toBeEnabled2 = Array.from(r4.newHistory.segments).find(elem => elem[1].text == "Font")[0]
             const r5 = r4.newHistory.apply_operations([[Operation.Disable, toBeDisabled1],
-                                                       [Operation.Enable, toBeEnabled11],
                                                        [Operation.Enable, toBeEnabled12],
-                                                       [Operation.Disable, toBeDisabled21],
+                                                       [Operation.Enable, toBeEnabled11],
                                                        [Operation.Disable, toBeDisabled22],
+                                                       [Operation.Disable, toBeDisabled21],
                                                        [Operation.Enable, toBeEnabled2]]) as ApplyResult
             r5.diff.should.deep.equal(new Diff([new Delta(2, "RegionArea", "FontSize")]))
             r5.newHistory.text.should.equal("myFontSize = 12;")
@@ -80,7 +73,7 @@ describe('SegmentHistory (Complex Cases)', () => {
         {
             const toBeEnabled11 = Array.from(r4.newHistory.segments).find(elem => elem[1].text == "x")[0]
             const toBeEnabled12 = Array.from(r4.newHistory.segments).find(elem => elem[1].text == "z")[0]
-            const r5 = r4.newHistory.apply_operations([[Operation.Enable, toBeEnabled11], [Operation.Enable, toBeEnabled12]]) as ApplyResult
+            const r5 = r4.newHistory.apply_operations([[Operation.Enable, toBeEnabled12], [Operation.Enable, toBeEnabled11]]) as ApplyResult
             r5.diff.should.deep.equal(new Diff([new Delta(0, "", "xz")]))
             r5.newHistory.text.should.equal("xz")
 
@@ -94,10 +87,10 @@ describe('SegmentHistory (Complex Cases)', () => {
             const toBeEnabled11 = Array.from(r4.newHistory.segments).find(elem => elem[1].text == "x")[0]
             const toBeEnabled12 = Array.from(r4.newHistory.segments).find(elem => elem[1].text == "z")[0]
             const toBeEnabled2 = Array.from(r4.newHistory.segments).find(elem => elem[1].text == "y")[0]
-            const r5 = r4.newHistory.apply_operations([[Operation.Enable, toBeEnabled11],
-                                                       [Operation.Enable, toBeEnabled12],
+            const r5 = r4.newHistory.apply_operations([[Operation.Enable, toBeEnabled12],
+                                                       [Operation.Enable, toBeEnabled11],
                                                        [Operation.Enable, toBeEnabled2]]) as ApplyResult
-            //r5.diff.should.deep.equal(new Diff([new Delta(0, "", "xyz")]))
+            r5.diff.should.deep.equal(new Diff([new Delta(0, "", "xyz")]))
             r5.newHistory.text.should.equal("xyz")
         }
     })

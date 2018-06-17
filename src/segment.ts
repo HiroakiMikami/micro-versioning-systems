@@ -353,7 +353,7 @@ class SegmentHistory extends ConstrainedData {
 
                     /* Closing */
                     for (const elem of toBeClosed) { // TODO inefficient (O(#Segment^2) in the worst case)
-                        if (begin <= elem[0] && elem[0] < end) {
+                        if (begin < elem[0] && elem[0] <= end) {
                             newClosing.addVertex(id)
                             newClosing.addVertex(elem[1])
                             newClosing.addEdge(id, elem[1], elem[0] - begin)
@@ -392,15 +392,34 @@ class SegmentHistory extends ConstrainedData {
             if (result !== null) {
                 const [delta, newSegment] = result
 
-                const toBeReopened = newClosing.successors(id)
+                const toBeReopened = new Map(newClosing.successors(id))
                 const direction = delta.insert.length - delta.remove.length
                 for (const [id2, segment2] of newSegments) {
                     if (toBeReopened.has(id2)) {
                         // Reopen
                         newSegments.set(id2, new Segment(newSegment.offset + toBeReopened.get(id2), segment2.text, segment2.status))
+                        newClosing.removeEdge(id, id2)
                     } else {
-                        if (segment.interval().end <= segment2.offset) {
-                            newSegments.set(id2, segment2.move(direction))
+                        if (segment2.status === Status.Enabled) {
+                            if (segment.interval().end <= segment2.offset) {
+                                newSegments.set(id2, segment2.move(direction))
+                            }
+                        } else {
+                            if (segment.status === Status.Enabled) {
+                                if (segment.offset < segment2.offset && segment2.offset <= segment.interval().end) {
+                                    newSegments.set(id2, segment2.move(segment.offset - segment2.offset))
+                                    // Close
+                                    newClosing.addVertex(id)
+                                    newClosing.addVertex(id2)
+                                    newClosing.addEdge(id, id2, segment2.offset - segment.offset)
+                                } else if (segment.interval().end <= segment2.offset) {
+                                    newSegments.set(id2, segment2.move(direction))
+                                }
+                            } else {
+                                if (segment.interval().end < segment2.offset) {
+                                    newSegments.set(id2, segment2.move(direction))
+                                }
+                            }
                         }
                     }
                 }
@@ -423,7 +442,10 @@ class SegmentHistory extends ConstrainedData {
                 } else {
                     insert.push(id)
                 }
-                newClosing.removeVertex(id)
+
+                if (op === Operation.Enable) {
+                    newClosing.removeVertex(id)
+                }
             }
         }
 

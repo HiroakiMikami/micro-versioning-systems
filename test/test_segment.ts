@@ -276,12 +276,12 @@ describe('SegmentHistory', () => {
                                                                                new Segment(1, "2", Status.Disabled),
                                                                                new Segment(1, "67", Status.Disabled),
                                                                                new Segment(1, "8", Status.Enabled)])
-                const closed2 = r6.remove[2]
+                const closed2 = r6.remove[1]
                 const s2 = r6.newHistory.closing.successors(closed2)
                 s2.size.should.equal(2)
                 Array.from(s2.keys()).should.deep.equal(closed1)
                 for (const s of Array.from(s2)) {
-                    s[1].should.equal(0)
+                    s[1].should.equal(1)
                 }
             }
         })
@@ -361,6 +361,30 @@ describe('SegmentHistory', () => {
             r3.newHistory.text.should.equal("123")
             r3.diff.should.deep.equal(new Diff([new Delta(0, "456", "123")]))
             Array.from(r3.newHistory.segments.values()).should.deep.equal([new Segment(0, "123", Status.Enabled), new Segment(3, "456", Status.Disabled)])
+        })
+        u.it('close the segment if needed', () => {
+            const h1 = new SegmentHistory(new Map(), new ImmutableDirectedGraph(new Set(), new Map()), "")
+            const r2 = h1.apply_diff(new Diff([new Delta(0, "", "xxx")])) as ApplyResult
+            const r3 = r2.newHistory.apply_diff(new Diff([new Delta(1, "", "yyy")])) as ApplyResult
+            const s1 = r3.insert[0]
+            const [s2, s3] = Array.from(r3.splittedSegments.get(r2.insert[0]))
+            const r4 = r3.newHistory.apply_operations([
+                [Operation.Disable, s1],
+                [Operation.Disable, s3],
+                [Operation.Disable, s2]]) as ApplyResult
+            r4.insert.length.should.equal(0)
+            r4.remove.length.should.equal(3)
+            r4.newHistory.text.should.equal("")
+            new Set(r4.newHistory.closing.successors(s2).keys()).has(s1).should.true
+
+            const r5 = r4.newHistory.apply_operations([
+                [Operation.Enable, s2],
+                [Operation.Enable, s3],
+                [Operation.Enable, s1]]) as ApplyResult
+            r5.insert.length.should.equal(3)
+            r5.remove.length.should.equal(0)
+            r5.newHistory.text.should.equal("xyyyxx")
+            r5.newHistory.closing.edges.size.should.equal(0)
         })
     })
 })
