@@ -56,10 +56,6 @@ class ImmutableDirectedGraph<V, L> extends ConstrainedData {
         super(() => validate(vertices, edges, pred))
     }
 
-    /**
-     * @param v
-     * @returns The successors of `v` with labels of the edges
-     */
     public successors(v: V): ReadonlyMap<V, L> {
         return this.edges.has(v) ? this.edges.get(v) : new Map()
     }
@@ -77,10 +73,6 @@ class MutableDirectedGraph<V, L> extends ConstrainedData {
         super(() => validate(vertices, edges, pred))
     }
 
-    /**
-     * @param v
-     * @returns The successors of `v` with labels of the edges
-     */
     public successors(v: V): ReadonlyMap<V, L> {
         return this.edges.has(v) ? this.edges.get(v) : new Map()
     }
