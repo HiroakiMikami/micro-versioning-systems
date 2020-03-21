@@ -20,6 +20,7 @@ jobs:
     - name: npm install, build, and test
       run: |
         npm install
+        npm run check-format
         npm run compile
         npm test
       env:

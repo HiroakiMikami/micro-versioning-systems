@@ -24,7 +24,7 @@ function evaluate(commits: Map<string, Commit>): Map<string, number> {
     }
 
     
-    let retval = new Map()
+    const retval = new Map()
     for (const [id, commit] of commits) {
         let score = 0
         for (const time of commit.timestamps) {

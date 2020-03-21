@@ -3,7 +3,7 @@ import * as uuidv4 from "uuid/v4"
 import { ConstrainedData, Status, Operation } from "./common"
 import { Diff, DeleteNonExistingText } from "./diff"
 import { SegmentHistory } from "./segment"
-import { ImmutableDirectedGraph, to_mutable, to_immutable, MutableDirectedGraph } from "./graph"
+import { ImmutableDirectedGraph, toMutable, toImmutable, MutableDirectedGraph } from "./graph"
 
 /**
  * An edit of the source code
@@ -32,7 +32,7 @@ class Commit extends ConstrainedData {
             }
 
             /* timestamps should not be empty */
-            if (timestamps.size == - 0) {
+            if (timestamps.size === 0) {
                 return `the set of timestamps is empty`
             }
 
@@ -43,7 +43,7 @@ class Commit extends ConstrainedData {
      * @returns The list of segment operations required to toggle this commit
      */
     public toggle(): ReadonlyArray<[Operation, string]> {
-        let retval: [Operation, string][] = []
+        const retval: [Operation, string][] = []
         if (this.status === Status.Enabled) {
             for (const id of this.remove) {
                 retval.push([Operation.Enable, id])
@@ -168,13 +168,13 @@ class CommitHistory extends ConstrainedData {
         if (_inverseRelation) {
             this.inverseRelation = _inverseRelation
         } else {
-            let g = new MutableDirectedGraph<string, Relation>(new Set(relation.vertices), new Map())
+            const g = new MutableDirectedGraph<string, Relation>(new Set(relation.vertices), new Map())
             for (const v of relation.vertices) {
                 for (const [v2, l] of relation.successors(v)) {
                     g.addEdge(v2, v, l)
                 }
             }
-            this.inverseRelation = to_immutable(g)
+            this.inverseRelation = toImmutable(g)
         }
     }
     /**
@@ -183,17 +183,17 @@ class CommitHistory extends ConstrainedData {
      * @param diff The change of the source code
      * @returns The result of this operation
      */
-    public apply_diff(date: Date, diff: Diff): Result | DeleteNonExistingText {
+    public applyDiff(date: Date, diff: Diff): Result | DeleteNonExistingText {
         const deltas = Array.from(diff.deltas)
         deltas.reverse()
 
         let newHistory = this.history
-        let newCommits = new Map(Array.from(this.commits))
-        let addedCommits: Set<string> = new Set()
-        let newRelation = to_mutable(this.relation)
-        let newInverseRelation = to_mutable(this.inverseRelation)
+        const newCommits = new Map(Array.from(this.commits))
+        const addedCommits: Set<string> = new Set()
+        const newRelation = toMutable(this.relation)
+        const newInverseRelation = toMutable(this.inverseRelation)
 
-        function mkId() {
+        function mkId(): string {
             let id = uuidv4()
             while (newCommits.has(id)) {
                 id = uuidv4()
@@ -202,7 +202,7 @@ class CommitHistory extends ConstrainedData {
         }
 
         for (const delta of deltas) {
-            const result = newHistory.apply_delta(delta)
+            const result = newHistory.applyDeleta(delta)
             if (result instanceof DeleteNonExistingText) {
                 return result
             }
@@ -213,10 +213,10 @@ class CommitHistory extends ConstrainedData {
             const id = mkId()
 
             for (const [id2, c] of newCommits) {
-                let has_regional_conflict = false
-                let is_exclusive = false
-                let remove = []
-                let insert = []
+                let hasRegionalConflict = false
+                let isExclusive = false
+                const remove = []
+                const insert = []
                 for (const r of c.remove) {
                     /* Update splitted commits */
                     if (result.splittedSegments.has(r)) {
@@ -229,13 +229,13 @@ class CommitHistory extends ConstrainedData {
 
                     /* Check exclusive relation */
                     if (toBeRemoved.has(r)) {
-                        is_exclusive = true
+                        isExclusive = true
                     }
 
                     /* Check regional conflict */
                     const interval = newHistory.segments.get(r).interval()
                     if (delta.interval().intersect(interval) !== null) {
-                        has_regional_conflict = true
+                        hasRegionalConflict = true
                     }
                 }
                 for (const i of c.insert) {
@@ -251,11 +251,11 @@ class CommitHistory extends ConstrainedData {
                     /* Check regional conflict */
                     const interval = newHistory.segments.get(i).interval()
                     if (delta.interval().intersect(interval) !== null) {
-                        has_regional_conflict = true
+                        hasRegionalConflict = true
                     }
                 }
 
-                if (is_exclusive) {
+                if (isExclusive) {
                     newRelation.addVertex(id)
                     newRelation.addVertex(id2)
                     newRelation.addEdge(id, id2, Relation.Exclusive)
@@ -264,7 +264,7 @@ class CommitHistory extends ConstrainedData {
                     newInverseRelation.addVertex(id2)
                     newInverseRelation.addEdge(id, id2, Relation.Exclusive)
                     newInverseRelation.addEdge(id2, id, Relation.Exclusive)
-                } else if (has_regional_conflict) {
+                } else if (hasRegionalConflict) {
                     newRelation.addVertex(id)
                     newRelation.addVertex(id2)
                     newRelation.addEdge(id2, id, Relation.Depend)
@@ -297,8 +297,8 @@ class CommitHistory extends ConstrainedData {
         }
 
         return new Result(new CommitHistory(newHistory, newCommits,
-            to_immutable(newRelation),
-            to_immutable(newInverseRelation)),
+            toImmutable(newRelation),
+            toImmutable(newInverseRelation)),
             diff, addedCommits)
     }
 
@@ -309,8 +309,8 @@ class CommitHistory extends ConstrainedData {
      */
     public toggle(id: string): Result | DeleteNonExistingText | FailToResolveDependency {
         /* Collect commits to be toggled */
-        let commitToBeToggled = new Map<string, Operation>()
-        let commitOps: string[] = []
+        const commitToBeToggled = new Map<string, Operation>()
+        const commitOps: string[] = []
 
         const collectCommitToBeToggled = (id: string, commit: Commit): FailToResolveDependency | null => {
             if (commit.status === Status.Enabled) {
@@ -363,19 +363,19 @@ class CommitHistory extends ConstrainedData {
             return ret
         }
 
-        let segmentOps: [Operation, string][] = []
+        const segmentOps: [Operation, string][] = []
         for (const commitId of commitOps) {
             segmentOps.push(...this.commits.get(commitId).toggle())
         }
 
         /* Apply operations */
-        const result = this.history.apply_operations(segmentOps)
+        const result = this.history.applyOperations(segmentOps)
         if (result instanceof DeleteNonExistingText) {
             return result
         }
 
         /* Toggle commits */
-        let newCommits = new Map(this.commits)
+        const newCommits = new Map(this.commits)
         for (const id of commitOps) {
             const commit = this.commits.get(id)
             newCommits.set(id,
@@ -412,8 +412,8 @@ class CommitHistory extends ConstrainedData {
      * @returns the new history
      */
     public addDependency(from: string, to: string): CommitHistory {
-        const newRelation = to_mutable(this.relation)
-        const newInverseRelation = to_mutable(this.inverseRelation)
+        const newRelation = toMutable(this.relation)
+        const newInverseRelation = toMutable(this.inverseRelation)
         newRelation.addVertex(from)
         newRelation.addVertex(to)
         newInverseRelation.addVertex(from)
@@ -423,21 +423,21 @@ class CommitHistory extends ConstrainedData {
             newInverseRelation.addEdge(to, from, Relation.Depend)
         }
         return new CommitHistory(this.history, this.commits,
-            to_immutable(newRelation), to_immutable(newInverseRelation))
+            toImmutable(newRelation), toImmutable(newInverseRelation))
     }
     /**
      * Remove dependency from `from` to `to`
      * @returns the new history
      */
     public removeDependency(from: string, to: string): CommitHistory {
-        const newRelation = to_mutable(this.relation)
-        const newInverseRelation = to_mutable(this.inverseRelation)
+        const newRelation = toMutable(this.relation)
+        const newInverseRelation = toMutable(this.inverseRelation)
         if (newRelation.successors(from).get(to) === Relation.Depend) {
             newRelation.removeEdge(from, to)
             newInverseRelation.removeEdge(to, from)
         }
         return new CommitHistory(this.history, this.commits,
-            to_immutable(newRelation), to_immutable(newInverseRelation))
+            toImmutable(newRelation), toImmutable(newInverseRelation))
     }
 }
 

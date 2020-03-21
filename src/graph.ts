@@ -6,14 +6,14 @@ type Predicate<V, L> = (self: DirectedGraph<V, L>) => string | null
 /** A labeled directed graph */
 interface DirectedGraph<V, L> {
     /** The vertex set */
-    readonly vertices: ReadonlySet<V>
+    readonly vertices: ReadonlySet<V>;
     /** The edge set (there is a v1 -> v2 edge with label `l` if this.edges.get(v1) contains (v2, l)) */
-    readonly edges: ReadonlyMap<V, ReadonlyMap<V, L>>
+    readonly edges: ReadonlyMap<V, ReadonlyMap<V, L>>;
     /**
      * @param v
      * @returns The successors of `v` with labels of the edges
      */
-    successors(v: V): ReadonlyMap<V, L>
+    successors(v: V): ReadonlyMap<V, L>;
 }
 
 /**
@@ -39,7 +39,7 @@ function validate<V, L>(vertices: ReadonlySet<V>,
         }
     }
     if (pred) {
-        return pred(new ImmutableDirectedGraph(vertices, edges))
+        return pred(new ImmutableDirectedGraph(vertices, edges)) // eslint-disable-line @typescript-eslint/no-use-before-define
     }
     return null
 }
@@ -80,16 +80,16 @@ class MutableDirectedGraph<V, L> extends ConstrainedData {
     /**
      * @param v The vertex to be added
      */
-    public addVertex(v: V) {
+    public addVertex(v: V): void {
         this.vertices.add(v)
     }
     /**
      * @param v The vertex to be removed
      */
-    public removeVertex(v: V) {
+    public removeVertex(v: V): void {
         this.vertices.delete(v)
         this.edges.delete(v)
-        let tmp = []
+        const tmp = []
         for (const elem of this.edges) {
             if (elem[1].has(v)) {
                 tmp.push([elem[0], v])
@@ -104,7 +104,7 @@ class MutableDirectedGraph<V, L> extends ConstrainedData {
      * @param v2 The endpoint vertex of the edge to be added (2)
      * @param label The label of the edge to be added
      */
-    public addEdge(v1: V, v2: V, label: L) {
+    public addEdge(v1: V, v2: V, label: L): void {
         if (!this.edges.has(v1)) {
             this.edges.set(v1, new Map([[v2, label]]))
         } else {
@@ -115,7 +115,7 @@ class MutableDirectedGraph<V, L> extends ConstrainedData {
      * @param v1 The endpoint vertex of the edge to be removed(1)
      * @param v2 The endpoint vertex of the edge to be removed (2)
      */
-    public removeEdge(v1: V, v2: V) {
+    public removeEdge(v1: V, v2: V): void {
         if (!this.edges.has(v1)) return
         this.edges.get(v1).delete(v2)
         if (this.edges.get(v1).size == 0) {
@@ -126,7 +126,7 @@ class MutableDirectedGraph<V, L> extends ConstrainedData {
 /**
  * @returns The immutable object of the graph
  */
-function to_immutable<V, L>(graph: DirectedGraph<V, L>): ImmutableDirectedGraph<V, L> {
+function toImmutable<V, L>(graph: DirectedGraph<V, L>): ImmutableDirectedGraph<V, L> {
     const edges = new Map()
     for (const [v1, vs] of graph.edges) {
         edges.set(v1, new Map(Array.from(vs)))
@@ -137,7 +137,7 @@ function to_immutable<V, L>(graph: DirectedGraph<V, L>): ImmutableDirectedGraph<
 /**
  * @returns The mutable object of the graph
  */
-function to_mutable<V, L>(graph: DirectedGraph<V, L>): MutableDirectedGraph<V, L> {
+function toMutable<V, L>(graph: DirectedGraph<V, L>): MutableDirectedGraph<V, L> {
     const edges = new Map()
     for (const [v1, vs] of graph.edges) {
         edges.set(v1, new Map(Array.from(vs)))
@@ -145,4 +145,4 @@ function to_mutable<V, L>(graph: DirectedGraph<V, L>): MutableDirectedGraph<V, L
     return new MutableDirectedGraph<V, L>(new Set(Array.from(graph.vertices)), edges)
 }
 
-export { Predicate, DirectedGraph, ImmutableDirectedGraph, MutableDirectedGraph, to_immutable, to_mutable }
+export { Predicate, DirectedGraph, ImmutableDirectedGraph, MutableDirectedGraph, toImmutable, toMutable }

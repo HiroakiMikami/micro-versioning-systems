@@ -3,17 +3,17 @@ chai.should()
 
 import { ExecutionMode, ConstrainedData } from '../src/common'
 
-function it_debug(msg: string, func: () => void | PromiseLike<any>) {
+function itDebug(msg: string, func: () => void | PromiseLike<void>): void {
     it(msg, function () {
         ConstrainedData.mode = ExecutionMode.Debug
         return func()
     })
 }
-function it_release(msg: string, func: () => void | PromiseLike<any>) {
+function itRelease(msg: string, func: () => void | PromiseLike<void>): void {
     it(msg, function () {
         ConstrainedData.mode = ExecutionMode.Release
         return func()
     })
 }
 
-export { it_debug as it, it_release }
+export { itDebug as it, itRelease as itRelease }

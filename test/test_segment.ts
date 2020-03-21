@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/explicit-function-return-type */
 import * as chai from 'chai'
 const should = chai.should()
 
@@ -111,7 +112,7 @@ describe('SegmentHistory', () => {
     describe('#apply_delta', () => {
         u.it('insert text and update segments', () => {
             const h = new SegmentHistory(new Map(), new ImmutableDirectedGraph(new Set(), new Map()), "")
-            const r2 = h.apply_delta(new Delta(0, "", "xxx")) as ApplyResult
+            const r2 = h.applyDeleta(new Delta(0, "", "xxx")) as ApplyResult
             r2.newHistory.text.should.equal("xxx")
             r2.insert.length.should.equal(1)
             r2.remove.length.should.equal(0)
@@ -119,7 +120,7 @@ describe('SegmentHistory', () => {
             Array.from(r2.newHistory.segments.values()).should.deep.equal([new Segment(0, "xxx", Status.Enabled)])
 
             {
-                const r = r2.newHistory.apply_delta(new Delta(1, "", "yyy")) as ApplyResult
+                const r = r2.newHistory.applyDeleta(new Delta(1, "", "yyy")) as ApplyResult
                 r.splittedSegments.has(r2.insert[0]).should.true
                 r.insert.length.should.equal(1)
                 r.newHistory.segments.get(r.insert[0]).should.deep.equal(new Segment(1, "yyy", Status.Enabled))
@@ -132,7 +133,7 @@ describe('SegmentHistory', () => {
             }
 
             {
-                const r = r2.newHistory.apply_delta(new Delta(0, "", "yyy")) as ApplyResult
+                const r = r2.newHistory.applyDeleta(new Delta(0, "", "yyy")) as ApplyResult
                 r.splittedSegments.size.should.equal(0)
                 r.insert.length.should.equal(1)
                 r.newHistory.segments.get(r.insert[0]).should.deep.equal(new Segment(0, "yyy", Status.Enabled))
@@ -144,7 +145,7 @@ describe('SegmentHistory', () => {
             }
 
             {
-                const r = r2.newHistory.apply_delta(new Delta(3, "", "yyy")) as ApplyResult
+                const r = r2.newHistory.applyDeleta(new Delta(3, "", "yyy")) as ApplyResult
                 r.splittedSegments.size.should.equal(0)
                 r.insert.length.should.equal(1)
                 r.newHistory.segments.get(r.insert[0]).should.deep.equal(new Segment(3, "yyy", Status.Enabled))
@@ -158,8 +159,8 @@ describe('SegmentHistory', () => {
         u.it('delete text and update segments', () => {
             {
                 const h1 = new SegmentHistory(new Map(), new ImmutableDirectedGraph(new Set(), new Map()), "123456")
-                const r2 = h1.apply_delta(new Delta(6, "", "xxx")) as ApplyResult
-                const r3 = r2.newHistory.apply_delta(new Delta(1, "234", "")) as ApplyResult
+                const r2 = h1.applyDeleta(new Delta(6, "", "xxx")) as ApplyResult
+                const r3 = r2.newHistory.applyDeleta(new Delta(1, "234", "")) as ApplyResult
                 r3.newHistory.text.should.equal("156xxx")
                 r3.insert.length.should.equal(0)
                 r3.remove.length.should.equal(1)
@@ -169,8 +170,8 @@ describe('SegmentHistory', () => {
             }
             {
                 const h1 = new SegmentHistory(new Map(), new ImmutableDirectedGraph(new Set(), new Map()), "xxx")
-                const h2 = (h1.apply_delta(new Delta(3, "", "123456")) as ApplyResult).newHistory
-                const r3 = h2.apply_delta(new Delta(2, "x12", "")) as ApplyResult
+                const h2 = (h1.applyDeleta(new Delta(3, "", "123456")) as ApplyResult).newHistory
+                const r3 = h2.applyDeleta(new Delta(2, "x12", "")) as ApplyResult
                 r3.newHistory.text.should.equal("xx3456")
                 r3.splittedSegments.size.should.equal(1)
                 r3.insert.length.should.equal(0)
@@ -184,8 +185,8 @@ describe('SegmentHistory', () => {
             }
             {
                 const h1 = new SegmentHistory(new Map(), new ImmutableDirectedGraph(new Set(), new Map()), "xxx")
-                const h2 = (h1.apply_delta(new Delta(0, "", "123456")) as ApplyResult).newHistory
-                const r3 = h2.apply_delta(new Delta(4, "56x", "")) as ApplyResult
+                const h2 = (h1.applyDeleta(new Delta(0, "", "123456")) as ApplyResult).newHistory
+                const r3 = h2.applyDeleta(new Delta(4, "56x", "")) as ApplyResult
                 r3.newHistory.text.should.equal("1234xx")
                 r3.splittedSegments.size.should.equal(1)
                 r3.insert.length.should.equal(0)
@@ -199,8 +200,8 @@ describe('SegmentHistory', () => {
             }
             {
                 const h1 = new SegmentHistory(new Map(), new ImmutableDirectedGraph(new Set(), new Map()), "")
-                const h2 = (h1.apply_delta(new Delta(0, "", "123456")) as ApplyResult).newHistory
-                const r3 = h2.apply_delta(new Delta(1, "234", "")) as ApplyResult
+                const h2 = (h1.applyDeleta(new Delta(0, "", "123456")) as ApplyResult).newHistory
+                const r3 = h2.applyDeleta(new Delta(1, "234", "")) as ApplyResult
                 r3.newHistory.text.should.equal("156")
                 r3.splittedSegments.size.should.equal(1)
                 r3.insert.length.should.equal(0)
@@ -213,8 +214,8 @@ describe('SegmentHistory', () => {
             }
             {
                 const h1 = new SegmentHistory(new Map(), new ImmutableDirectedGraph(new Set(), new Map()), "xxxx")
-                const h2 = (h1.apply_delta(new Delta(2, "", "123")) as ApplyResult).newHistory
-                const r3 = h2.apply_delta(new Delta(1, "x123x", "")) as ApplyResult
+                const h2 = (h1.applyDeleta(new Delta(2, "", "123")) as ApplyResult).newHistory
+                const r3 = h2.applyDeleta(new Delta(1, "x123x", "")) as ApplyResult
                 r3.newHistory.text.should.equal("xx")
                 r3.splittedSegments.size.should.equal(0)
                 r3.insert.length.should.equal(0)
@@ -229,8 +230,8 @@ describe('SegmentHistory', () => {
             }
             {
                 const h1 = new SegmentHistory(new Map(), new ImmutableDirectedGraph(new Set(), new Map()), "xxxx123")
-                const h2 = (h1.apply_delta(new Delta(4, "123", "")) as ApplyResult).newHistory
-                const r3 = h2.apply_delta(new Delta(0, "xx", "")) as ApplyResult
+                const h2 = (h1.applyDeleta(new Delta(4, "123", "")) as ApplyResult).newHistory
+                const r3 = h2.applyDeleta(new Delta(0, "xx", "")) as ApplyResult
                 r3.newHistory.text.should.equal("xx")
                 r3.splittedSegments.size.should.equal(0)
                 r3.insert.length.should.equal(0)
@@ -244,7 +245,7 @@ describe('SegmentHistory', () => {
         u.it('replace text and update segments', () => {
             {
                 const h1 = new SegmentHistory(new Map(), new ImmutableDirectedGraph(new Set(), new Map()), "123456")
-                const r2 = h1.apply_delta(new Delta(1, "234", "xxx")) as ApplyResult
+                const r2 = h1.applyDeleta(new Delta(1, "234", "xxx")) as ApplyResult
                 r2.newHistory.text.should.equal("1xxx56")
                 r2.insert.length.should.equal(1)
                 r2.newHistory.segments.get(r2.insert[0]).should.deep.equal(new Segment(1, "xxx", Status.Enabled))
@@ -257,12 +258,12 @@ describe('SegmentHistory', () => {
         u.it('close text segments', () => {
             {
                 const h1 = new SegmentHistory(new Map(), new ImmutableDirectedGraph(new Set(), new Map()), "")
-                const h2 = (h1.apply_delta(new Delta(0, "", "12")) as ApplyResult).newHistory
-                const h3 = (h2.apply_delta(new Delta(2, "", "34")) as ApplyResult).newHistory
-                const h4 = (h3.apply_delta(new Delta(4, "", "5678")) as ApplyResult).newHistory
-                const r5 = h4.apply_delta(new Delta(3, "45", "")) as ApplyResult
+                const h2 = (h1.applyDeleta(new Delta(0, "", "12")) as ApplyResult).newHistory
+                const h3 = (h2.applyDeleta(new Delta(2, "", "34")) as ApplyResult).newHistory
+                const h4 = (h3.applyDeleta(new Delta(4, "", "5678")) as ApplyResult).newHistory
+                const r5 = h4.applyDeleta(new Delta(3, "45", "")) as ApplyResult
                 const closed1 = r5.remove
-                const r6 = r5.newHistory.apply_delta(new Delta(1, "2367", "")) as ApplyResult
+                const r6 = r5.newHistory.applyDeleta(new Delta(1, "2367", "")) as ApplyResult
                 r6.newHistory.text.should.equal("18")
                 r6.insert.length.should.equal(0)
                 r6.remove.length.should.equal(3)
@@ -287,15 +288,15 @@ describe('SegmentHistory', () => {
         })
         u.it('return conflict if the diff is impossible', () => {
             const h1 = new SegmentHistory(new Map(), new ImmutableDirectedGraph(new Set(), new Map()), "123")
-            const r2 = h1.apply_delta(new Delta(0, "abc", ""))
+            const r2 = h1.applyDeleta(new Delta(0, "abc", ""))
             r2.should.deep.equal(new DeleteNonExistingText(0, "abc", "123"))
         })
     })
     describe('#apply_operations', () => {
         u.it('enable and disable the segment', () => {
             const h1 = new SegmentHistory(new Map(), new ImmutableDirectedGraph(new Set(), new Map()), "123")
-            const r2 = h1.apply_delta(new Delta(0, "123", "456")) as ApplyResult
-            const r3 = r2.newHistory.apply_operations([[Operation.Disable, r2.insert[0]]]) as ApplyResult
+            const r2 = h1.applyDeleta(new Delta(0, "123", "456")) as ApplyResult
+            const r3 = r2.newHistory.applyOperations([[Operation.Disable, r2.insert[0]]]) as ApplyResult
             r3.insert.length.should.equal(0)
             r3.remove.length.should.equal(1)
             r3.remove[0].should.equal(r2.insert[0])
@@ -303,7 +304,7 @@ describe('SegmentHistory', () => {
             r3.diff.should.deep.equal(new Diff([new Delta(0, "456", "")]))
             Array.from(r3.newHistory.segments.values()).should.deep.equal([new Segment(0, "123", Status.Disabled), new Segment(0, "456", Status.Disabled)])
 
-            const r4 = r2.newHistory.apply_operations([[Operation.Enable, r2.remove[0]]]) as ApplyResult
+            const r4 = r2.newHistory.applyOperations([[Operation.Enable, r2.remove[0]]]) as ApplyResult
             r4.insert.length.should.equal(1)
             r4.insert[0].should.equal(r2.remove[0])
             r4.remove.length.should.equal(0)
@@ -313,10 +314,10 @@ describe('SegmentHistory', () => {
         })
         u.it('reopen the closed segment', () => {
             const h1 = new SegmentHistory(new Map(), new ImmutableDirectedGraph(new Set(), new Map()), "123")
-            const r2 = h1.apply_delta(new Delta(1, "2", "")) as ApplyResult
-            const r3 = r2.newHistory.apply_delta(new Delta(0, "13", "")) as ApplyResult
+            const r2 = h1.applyDeleta(new Delta(1, "2", "")) as ApplyResult
+            const r3 = r2.newHistory.applyDeleta(new Delta(0, "13", "")) as ApplyResult
             const s2 = r3.remove[0]
-            const r4 = r3.newHistory.apply_operations([[Operation.Enable, r3.remove[0]]]) as ApplyResult
+            const r4 = r3.newHistory.applyOperations([[Operation.Enable, r3.remove[0]]]) as ApplyResult
             r4.insert.length.should.equal(1)
             r4.insert[0].should.equal(s2)
             r4.remove.length.should.equal(0)
@@ -330,8 +331,8 @@ describe('SegmentHistory', () => {
         })
         u.it('toggle multiple segments', () => {
             const h1 = new SegmentHistory(new Map(), new ImmutableDirectedGraph(new Set(), new Map()), "123")
-            const r2 = h1.apply_delta(new Delta(0, "123", "456")) as ApplyResult
-            const r3 = r2.newHistory.apply_operations([[Operation.Enable, r2.remove[0]], [Operation.Disable, r2.insert[0]]]) as ApplyResult
+            const r2 = h1.applyDeleta(new Delta(0, "123", "456")) as ApplyResult
+            const r3 = r2.newHistory.applyOperations([[Operation.Enable, r2.remove[0]], [Operation.Disable, r2.insert[0]]]) as ApplyResult
             r3.insert.length.should.equal(1)
             r3.insert[0].should.equal(r2.remove[0])
             r3.remove.length.should.equal(1)
@@ -342,11 +343,11 @@ describe('SegmentHistory', () => {
         })
         u.it('close the segment if needed', () => {
             const h1 = new SegmentHistory(new Map(), new ImmutableDirectedGraph(new Set(), new Map()), "")
-            const r2 = h1.apply_delta(new Delta(0, "", "xxx")) as ApplyResult
-            const r3 = r2.newHistory.apply_delta(new Delta(1, "", "yyy")) as ApplyResult
+            const r2 = h1.applyDeleta(new Delta(0, "", "xxx")) as ApplyResult
+            const r3 = r2.newHistory.applyDeleta(new Delta(1, "", "yyy")) as ApplyResult
             const s1 = r3.insert[0]
             const [s2, s3] = Array.from(r3.splittedSegments.get(r2.insert[0]))
-            const r4 = r3.newHistory.apply_operations([
+            const r4 = r3.newHistory.applyOperations([
                 [Operation.Disable, s1],
                 [Operation.Disable, s3],
                 [Operation.Disable, s2]]) as ApplyResult
@@ -355,7 +356,7 @@ describe('SegmentHistory', () => {
             r4.newHistory.text.should.equal("")
             new Set(r4.newHistory.closing.successors(s2).keys()).has(s1).should.true
 
-            const r5 = r4.newHistory.apply_operations([
+            const r5 = r4.newHistory.applyOperations([
                 [Operation.Enable, s2],
                 [Operation.Enable, s3],
                 [Operation.Enable, s1]]) as ApplyResult
