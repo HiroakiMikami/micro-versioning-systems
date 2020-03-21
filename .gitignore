@@ -3,7 +3,7 @@
 !/.gitignore
 !/package.json
 !/package-lock.json
-!/.circleci/config.yml
+!/.github/workflows/*.yml
 !/tsconfig.json
 !/src/*.ts
 !/test/*.ts

@@ -18,9 +18,9 @@ class Commit extends ConstrainedData {
      * @param status The current status
      */
     constructor(public readonly remove: ReadonlyArray<string>,
-                public readonly insert: ReadonlyArray<string>,
-                public readonly timestamps: ReadonlySet<Date>,
-                public readonly status: Status) {
+        public readonly insert: ReadonlyArray<string>,
+        public readonly timestamps: ReadonlySet<Date>,
+        public readonly status: Status) {
         super(() => {
             /* remove and insert have no intersection */
             const ids = new Set(remove.concat(insert))
@@ -32,7 +32,7 @@ class Commit extends ConstrainedData {
             }
 
             /* timestamps should not be empty */
-            if (timestamps.size ==- 0) {
+            if (timestamps.size == - 0) {
                 return `the set of timestamps is empty`
             }
 
@@ -75,8 +75,8 @@ class Result {
      * @param newCommits The set of commits that are added by the operation
      */
     public constructor(public readonly newHistory: CommitHistory,
-                       public readonly diff: Diff,
-                       public readonly newCommits: ReadonlySet<string>) {}
+        public readonly diff: Diff,
+        public readonly newCommits: ReadonlySet<string>) { }
 }
 
 /** A conflict occurred when failing to resolve dependencies between commits */
@@ -84,7 +84,7 @@ class FailToResolveDependency {
     /**
      * @param commit The commit failed to resolve dependency
      */
-    public constructor(public readonly commit: string) {}
+    public constructor(public readonly commit: string) { }
 }
 
 /**
@@ -101,9 +101,9 @@ class CommitHistory extends ConstrainedData {
      * @param relation The relation between commits
      * @param _inverseRelation The inverse graph of the relation (automatically computed if this argument is null or undefined)
      */
-    constructor (public readonly history: SegmentHistory, public readonly commits: ReadonlyMap<string, Commit>,
-                 public readonly relation: ImmutableDirectedGraph<string, Relation>,
-                 _inverseRelation?: ImmutableDirectedGraph<string, Relation>) {
+    constructor(public readonly history: SegmentHistory, public readonly commits: ReadonlyMap<string, Commit>,
+        public readonly relation: ImmutableDirectedGraph<string, Relation>,
+        _inverseRelation?: ImmutableDirectedGraph<string, Relation>) {
         super(() => {
             if (_inverseRelation) {
                 /* Check inverseRelation */
@@ -189,7 +189,7 @@ class CommitHistory extends ConstrainedData {
 
         let newHistory = this.history
         let newCommits = new Map(Array.from(this.commits))
-        let addedCommits = new Set()
+        let addedCommits: Set<string> = new Set()
         let newRelation = to_mutable(this.relation)
         let newInverseRelation = to_mutable(this.inverseRelation)
 
@@ -297,8 +297,9 @@ class CommitHistory extends ConstrainedData {
         }
 
         return new Result(new CommitHistory(newHistory, newCommits,
-                                            to_immutable(newRelation), to_immutable(newInverseRelation)),
-                          diff, addedCommits)
+            to_immutable(newRelation),
+            to_immutable(newInverseRelation)),
+            diff, addedCommits)
     }
 
     /**
@@ -378,12 +379,12 @@ class CommitHistory extends ConstrainedData {
         for (const id of commitOps) {
             const commit = this.commits.get(id)
             newCommits.set(id,
-                           new Commit(commit.remove, commit.insert, commit.timestamps,
-                                     (commit.status === Status.Enabled) ? Status.Disabled : Status.Enabled))
+                new Commit(commit.remove, commit.insert, commit.timestamps,
+                    (commit.status === Status.Enabled) ? Status.Disabled : Status.Enabled))
         }
         return new Result(new CommitHistory(result.newHistory, newCommits,
-                                            this.relation, this.inverseRelation),
-                          result.diff, new Set())
+            this.relation, this.inverseRelation),
+            result.diff, new Set())
     }
 
     /**
@@ -422,7 +423,7 @@ class CommitHistory extends ConstrainedData {
             newInverseRelation.addEdge(to, from, Relation.Depend)
         }
         return new CommitHistory(this.history, this.commits,
-                                 to_immutable(newRelation), to_immutable(newInverseRelation))
+            to_immutable(newRelation), to_immutable(newInverseRelation))
     }
     /**
      * Remove dependency from `from` to `to`
@@ -436,7 +437,7 @@ class CommitHistory extends ConstrainedData {
             newInverseRelation.removeEdge(to, from)
         }
         return new CommitHistory(this.history, this.commits,
-                                 to_immutable(newRelation), to_immutable(newInverseRelation))
+            to_immutable(newRelation), to_immutable(newInverseRelation))
     }
 }
 
