@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/explicit-function-return-type */
 import * as chai from 'chai'
 const should = chai.should()
 
@@ -11,7 +12,7 @@ describe('ConstrainedData', () => {
         u.it('run assert if the execution mode is Debug', () => {
             (() => { new InvalidData(() => "") }).should.throw()
         })
-        u.it_release('ignore invalid data structure if the execution mode is Release', () => {
+        u.itRelease('ignore invalid data structure if the execution mode is Release', () => {
             (() => { new InvalidData(() => "") }).should.not.throw()
         })
     })

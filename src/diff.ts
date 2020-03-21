@@ -76,7 +76,7 @@ class Delta extends ConstrainedData {
     public interval(): Interval { return new Interval(this.offset, this.remove.length) }
 
     public toString(): string {
-        return `${this.offset}: \"${this.remove || ""}\" -> \"${this.insert || ""}\"`
+        return `${this.offset}: "${this.remove || ""}" -> "${this.insert || ""}"`
     }
 }
 
@@ -109,13 +109,13 @@ class Diff extends ConstrainedData {
      */
     public inverse(): Diff {
         let diff = 0
-        let inversed_deltas = []
+        const inversedDeltas = []
         for (const delta of this.deltas) {
             const idelta = new Delta(delta.offset + diff, delta.insert, delta.remove)
             diff += delta.insert.length - delta.remove.length
-            inversed_deltas.push(idelta)
+            inversedDeltas.push(idelta)
         }
-        return new Diff(Diff.normalize(inversed_deltas))
+        return new Diff(Diff.normalize(inversedDeltas))
     }
 
     /**
@@ -126,29 +126,29 @@ class Diff extends ConstrainedData {
      */
     public rebase(base: Diff): Diff | ModifyAlreadyModifiedText {
         let diff = 0
-        let deltas = []
-        let base_index = 0
+        const deltas = []
+        let baseIndex = 0
 
         for (const delta of this.deltas) {
             /* skip unrelated base deltas and update the offset difference */
-            while (base_index != base.deltas.length && base.deltas[base_index].offset < delta.offset) {
-                const d = base.deltas[base_index]
+            while (baseIndex != base.deltas.length && base.deltas[baseIndex].offset < delta.offset) {
+                const d = base.deltas[baseIndex]
                 diff += d.insert.length - d.remove.length
-                base_index += 1
+                baseIndex += 1
             }
 
             /* check whether `base` and `this` are conflicted or not */
             const i = delta.interval()
-            if (base_index != 0 && base.deltas.length != 0) {
-                const i1 = base.deltas[base_index - 1].interval()
+            if (baseIndex != 0 && base.deltas.length != 0) {
+                const i1 = base.deltas[baseIndex - 1].interval()
                 if (i.intersect(i1) != null) {
                     // base.deltas[base_index - 1] and delta is overlapped
                     const x = i.intersect(i1)
                     return new ModifyAlreadyModifiedText(x.begin, delta.remove.substr(x.begin - delta.offset, x.length))
                 }
             }
-            if (base_index < base.deltas.length) {
-                const i2 = base.deltas[base_index].interval()
+            if (baseIndex < base.deltas.length) {
+                const i2 = base.deltas[baseIndex].interval()
                 if (i.intersect(i2) != null) {
                     // base.deltas[base_index] and delta is overlapped
                     const x = i.intersect(i2)
@@ -169,7 +169,7 @@ class Diff extends ConstrainedData {
      * @returns The new diff that applies `this` first, then applies `next`
      */
     public then(next: Diff): Diff | DeleteNonExistingText {
-        let deltas = []
+        const deltas = []
 
         let diff = 0
         let index = 0
@@ -186,16 +186,16 @@ class Diff extends ConstrainedData {
                 deltas.push(d)
             }
             /* get conflicted deltas */
-            let conflicted = []
-            let tmp_diff = 0
+            const conflicted = []
+            let tmpDiff = 0
             while (index != this.deltas.length) {
                 const d = this.deltas[index]
                 const i = new Interval(d.offset + diff, d.insert.length)
                 if (!i.intersect(delta.interval())) {
                     break
                 }
-                conflicted.push(new Delta(d.offset + tmp_diff, d.remove, d.insert))
-                tmp_diff += d.insert.length - d.remove.length
+                conflicted.push(new Delta(d.offset + tmpDiff, d.remove, d.insert))
+                tmpDiff += d.insert.length - d.remove.length
 
                 index += 1
             }
@@ -209,44 +209,44 @@ class Diff extends ConstrainedData {
             for (const c of conflicted.reverse()) {
                 /* resolve conflit between c and this */
                 // Interval based on the text after applying c
-                const i_d = new Interval(offset, remove.length)
-                const i_c = new Interval(c.offset, c.insert.length)
+                const Id = new Interval(offset, remove.length)
+                const Ic = new Interval(c.offset, c.insert.length)
 
-                offset =  Math.min(i_d.begin, i_c.begin) //< update a offset
+                offset =  Math.min(Id.begin, Ic.begin) //< update a offset
 
                 // update insert if c's insert is remained in the final text
-                if (i_c.begin < i_d.begin && i_d.end < i_c.end) {
+                if (Ic.begin < Id.begin && Id.end < Ic.end) {
                     /*
                      * [conflicted]
                      *   [delta]
                      */
-                    insert = c.insert.slice(0, i_d.begin - i_c.begin) + insert + c.insert.slice(i_d.end - i_c.begin)
-                } else if (i_c.begin < i_d.begin) {
+                    insert = c.insert.slice(0, Id.begin - Ic.begin) + insert + c.insert.slice(Id.end - Ic.begin)
+                } else if (Ic.begin < Id.begin) {
                     /*
                      * [conflicted]
                      *         [delta]
                      */
-                    insert = c.insert.slice(0, i_d.begin - i_c.begin) + insert
-                } else if (i_d.end < i_c.end) {
+                    insert = c.insert.slice(0, Id.begin - Ic.begin) + insert
+                } else if (Id.end < Ic.end) {
                     /*
                      *   [conflicted]
                      * [delta]
                      */
-                    insert = insert + c.insert.slice(i_d.end - i_c.begin)
+                    insert = insert + c.insert.slice(Id.end - Ic.begin)
                 }
 
                 // update delete
-                const b = Math.max(i_d.begin, i_c.begin)
-                const e = Math.min(i_d.end, i_c.end)
-                const actual = c.insert.slice(Math.max(b - i_c.begin, 0), e - i_c.begin)
-                const expected = remove.slice(Math.max(b - i_d.begin, 0), e - i_d.begin)
+                const b = Math.max(Id.begin, Ic.begin)
+                const e = Math.min(Id.end, Ic.end)
+                const actual = c.insert.slice(Math.max(b - Ic.begin, 0), e - Ic.begin)
+                const expected = remove.slice(Math.max(b - Id.begin, 0), e - Id.begin)
                 // actual and expected should be same because `actual` in `c.insert` is deleted by `delta.remove`
                 if (actual != expected) {
                     // `delete.remove` try to remove a non-exsiting text
                     return new DeleteNonExistingText(b, expected, actual)
                 }
                 // remove `expected` from `remove`, and insert `c.remove` to `remove`
-                remove = remove.slice(0, Math.max(b - i_d.begin, 0)) + c.remove + remove.slice(e - i_d.begin)
+                remove = remove.slice(0, Math.max(b - Id.begin, 0)) + c.remove + remove.slice(e - Id.begin)
             }
 
             /* add the re-calculated delta */
@@ -262,21 +262,21 @@ class Diff extends ConstrainedData {
     }
 
     private static normalize(deltas: Delta[]): Delta[] {
-        let new_deltas: Delta[] = []
+        const newDeltas: Delta[] = []
         for (const delta of deltas) {
-            if (new_deltas.length == 0) {
-                new_deltas.push(delta)
+            if (newDeltas.length == 0) {
+                newDeltas.push(delta)
             } else {
-                const d = new_deltas[new_deltas.length - 1]
+                const d = newDeltas[newDeltas.length - 1]
                 if (d.interval().end == delta.offset) {
-                    new_deltas.pop()
-                    new_deltas.push(new Delta(d.offset, d.remove + delta.remove, d.insert + delta.insert))
+                    newDeltas.pop()
+                    newDeltas.push(new Delta(d.offset, d.remove + delta.remove, d.insert + delta.insert))
                 } else {
-                    new_deltas.push(delta)
+                    newDeltas.push(delta)
                 }
             }
         }
-        return new_deltas
+        return newDeltas
     }
 }
 

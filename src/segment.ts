@@ -2,7 +2,7 @@ import * as uuidv4 from "uuid/v4"
 
 import { ConstrainedData, Interval, Status, Operation } from "./common"
 import { Delta, Diff, DeleteNonExistingText } from "./diff"
-import { ImmutableDirectedGraph, to_immutable, to_mutable } from "./graph"
+import { ImmutableDirectedGraph, toImmutable, toMutable } from "./graph"
 
 /**
  * A result of the operation
@@ -80,9 +80,9 @@ class Segment extends ConstrainedData {
         _offsets = _offsets.filter((x, i, self) => self.indexOf(x) === i) // unique
         _offsets = _offsets.sort()
         let index = this.offset
-        let retval = []
+        const retval = []
 
-        const mkSegment = (begin: number, end: number | null) => {
+        const mkSegment = (begin: number, end: number | null): Segment => {
             const s = begin - this.offset
             const text = (end == null)
                 ? this.text.slice(s)
@@ -187,16 +187,16 @@ class SegmentHistory extends ConstrainedData {
      * @param delta The delta to be applied
      * @returns The result of applying diff
      */
-    public apply_delta(delta: Delta): ApplyResult | DeleteNonExistingText {
-        let newSegments = new Map(this.segments)
-        let newClosing = to_mutable(this.closing)
-        let splittedIds = new Map<string, string[]>()
-        let remove = []
-        let insert = []
+    public applyDeleta(delta: Delta): ApplyResult | DeleteNonExistingText {
+        const newSegments = new Map(this.segments)
+        const newClosing = toMutable(this.closing)
+        const splittedIds = new Map<string, string[]>()
+        const remove = []
+        const insert = []
         let newText = this.text
 
-        let ids = new Set()
-        function mkId() {
+        const ids = new Set()
+        function mkId(): string {
             let id = uuidv4()
             while (newSegments.has(id) || ids.has(id)) {
                 id = uuidv4()
@@ -205,9 +205,9 @@ class SegmentHistory extends ConstrainedData {
             return id
         }
 
-        let toBeSplitted = []
-        let toBeRemoved = new Map<number, string>()
-        let toBeClosed = new Set<[number, string]>()
+        const toBeSplitted = []
+        const toBeRemoved = new Map<number, string>()
+        const toBeClosed = new Set<[number, string]>()
 
         /* update text */
         const result = delta.apply(newText)
@@ -365,7 +365,7 @@ class SegmentHistory extends ConstrainedData {
         remove.reverse()
         insert.reverse()
         return new ApplyResult(
-            new SegmentHistory(newSegments, to_immutable(newClosing), newText),
+            new SegmentHistory(newSegments, toImmutable(newClosing), newText),
             new Diff([delta]), splittedIds, remove, insert)
     }
     /**
@@ -374,11 +374,11 @@ class SegmentHistory extends ConstrainedData {
      * @param operations The list of operations to be applied
      * @returns The result of applying diff
      */
-    public apply_operations(operations: ReadonlyArray<[Operation, string]>): ApplyResult | DeleteNonExistingText {
-        let newSegments = new Map(this.segments)
-        let newClosing = to_mutable(this.closing)
-        let remove = []
-        let insert = [] as string[]
+    public applyOperations(operations: ReadonlyArray<[Operation, string]>): ApplyResult | DeleteNonExistingText {
+        const newSegments = new Map(this.segments)
+        const newClosing = toMutable(this.closing)
+        const remove = []
+        const insert = [] as string[]
         let newText = this.text
         let diff = new Diff([])
 
@@ -445,7 +445,7 @@ class SegmentHistory extends ConstrainedData {
             }
         }
 
-        return new ApplyResult(new SegmentHistory(newSegments, to_immutable(newClosing), newText), diff, new Map(), remove, insert)
+        return new ApplyResult(new SegmentHistory(newSegments, toImmutable(newClosing), newText), diff, new Map(), remove, insert)
     }
 }
 

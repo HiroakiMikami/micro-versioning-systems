@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/explicit-function-return-type */
 import * as chai from 'chai'
 chai.should()
 
@@ -196,13 +197,13 @@ describe('CommitHistory', () => {
                                         new Map(),
                                         new ImmutableDirectedGraph(new Set(), new Map()))
             const current = new Date()
-            const r2 = h1.apply_diff(current, new Diff([new Delta(0, "", "xxx")])) as Result
+            const r2 = h1.applyDiff(current, new Diff([new Delta(0, "", "xxx")])) as Result
             r2.diff.should.deep.equal(new Diff([new Delta(0, "", "xxx")]))
             r2.newHistory.commits.size.should.equal(1)
             r2.newHistory.history.text.should.equal("xxx")
             r2.newCommits.should.deep.equal(new Set(r2.newHistory.commits.keys()))
 
-            const r3 = r2.newHistory.apply_diff(current,
+            const r3 = r2.newHistory.applyDiff(current,
                                                 new Diff([new Delta(3, "", "yyy")])) as Result
             r3.diff.should.deep.equal(new Diff([new  Delta(3, "", "yyy")]))
             r3.newHistory.commits.size.should.equal(2)
@@ -216,9 +217,9 @@ describe('CommitHistory', () => {
                                         new Map(),
                                         new ImmutableDirectedGraph(new Set(), new Map()))
             const current = new Date()
-            const r2 = h1.apply_diff(current, new Diff([new Delta(0, "", "xxx")])) as Result
+            const r2 = h1.applyDiff(current, new Diff([new Delta(0, "", "xxx")])) as Result
             const c1 = Array.from(r2.newCommits)[0]
-            const r3 = r2.newHistory.apply_diff(current,
+            const r3 = r2.newHistory.applyDiff(current,
                                                 new Diff([new Delta(2, "x", "")])) as Result
             r3.diff.should.deep.equal(new Diff([new  Delta(2, "x", "")]))
             r3.newHistory.commits.size.should.equal(2)
@@ -232,9 +233,9 @@ describe('CommitHistory', () => {
                                         new Map(),
                                         new ImmutableDirectedGraph(new Set(), new Map()))
             const current = new Date()
-            const r2 = h1.apply_diff(current, new Diff([new Delta(0, "", "xxx")])) as Result
+            const r2 = h1.applyDiff(current, new Diff([new Delta(0, "", "xxx")])) as Result
             const c1 = Array.from(r2.newCommits)[0]
-            const r3 = r2.newHistory.apply_diff(current,
+            const r3 = r2.newHistory.applyDiff(current,
                                                 new Diff([new Delta(2, "x", "1")])) as Result
             r3.newHistory.history.text.should.equal("xx1")
             r3.newHistory.commits.size.should.equal(2)
@@ -249,7 +250,7 @@ describe('CommitHistory', () => {
                                         new Map(),
                                         new ImmutableDirectedGraph(new Set(), new Map()))
             const current = new Date()
-            const r2 = h1.apply_diff(current, new Diff([new Delta(0, "", "xxx"), new Delta(1, "", "yyy")])) as Result
+            const r2 = h1.applyDiff(current, new Diff([new Delta(0, "", "xxx"), new Delta(1, "", "yyy")])) as Result
             const c1 = Array.from(r2.newCommits)[0]
             const c2 = Array.from(r2.newCommits)[1]
             r2.newHistory.history.text.should.equal("xxx1yyy")
@@ -265,7 +266,7 @@ describe('CommitHistory', () => {
                                         new Map([["x", new Commit(["x"], [], new Set([new Date()]), Status.Disabled)]]),
                                         new ImmutableDirectedGraph(new Set(), new Map()))
             const current = new Date()
-            const r2 = h1.apply_diff(current, new Diff([new Delta(0, "x", "y")])) as Result
+            const r2 = h1.applyDiff(current, new Diff([new Delta(0, "x", "y")])) as Result
             const c1 = Array.from(r2.newCommits)[0]
             r2.newHistory.history.text.should.equal("y")
             r2.newHistory.commits.size.should.equal(2)
@@ -279,7 +280,7 @@ describe('CommitHistory', () => {
                                         new Map(),
                                         new ImmutableDirectedGraph(new Set(), new Map()))
             const current = new Date()
-            const r2 = h1.apply_diff(current, new Diff([new Delta(0, "xxx", "")]));
+            const r2 = h1.applyDiff(current, new Diff([new Delta(0, "xxx", "")]));
             (r2 instanceof DeleteNonExistingText).should.true
         })
     })
@@ -291,7 +292,7 @@ describe('CommitHistory', () => {
                                         new Map(),
                                         new ImmutableDirectedGraph(new Set(), new Map()))
             const current = new Date()
-            const r2 = h1.apply_diff(current, new Diff([new Delta(0, "", "xxx")])) as Result
+            const r2 = h1.applyDiff(current, new Diff([new Delta(0, "", "xxx")])) as Result
             const c = Array.from(r2.newCommits)[0]
             const r3 = r2.newHistory.toggle(c) as Result
             r3.diff.should.deep.equal(new Diff([new Delta(0, "xxx", "")]))
@@ -305,9 +306,9 @@ describe('CommitHistory', () => {
                                         new Map(),
                                         new ImmutableDirectedGraph(new Set(), new Map()))
             const current = new Date()
-            const r2 = h1.apply_diff(current, new Diff([new Delta(0, "", "xxx")])) as Result
+            const r2 = h1.applyDiff(current, new Diff([new Delta(0, "", "xxx")])) as Result
             const c1 = Array.from(r2.newCommits)[0]
-            const r3 = r2.newHistory.apply_diff(current, new Diff([new Delta(1, "", "yyy")])) as Result
+            const r3 = r2.newHistory.applyDiff(current, new Diff([new Delta(1, "", "yyy")])) as Result
             const c2 = Array.from(r3.newCommits)[0]
 
             const r4 = r3.newHistory.toggle(c2) as Result
@@ -330,9 +331,9 @@ describe('CommitHistory', () => {
                                         new Map(),
                                         new ImmutableDirectedGraph(new Set(), new Map()))
             const current = new Date()
-            const r2 = h1.apply_diff(current, new Diff([new Delta(0, "", "xxx")])) as Result
+            const r2 = h1.applyDiff(current, new Diff([new Delta(0, "", "xxx")])) as Result
             const c1 = Array.from(r2.newCommits)[0]
-            const r3 = r2.newHistory.apply_diff(current, new Diff([new Delta(1, "", "yyy")])) as Result
+            const r3 = r2.newHistory.applyDiff(current, new Diff([new Delta(1, "", "yyy")])) as Result
             const c2 = Array.from(r3.newCommits)[0]
 
             const r4 = r3.newHistory.toggle(c1) as Result
@@ -357,10 +358,10 @@ describe('CommitHistory', () => {
                                         new Map(),
                                         new ImmutableDirectedGraph(new Set(), new Map()))
             const current = new Date()
-            const r2 = h1.apply_diff(current, new Diff([new Delta(0, "xxx", "111")])) as Result
+            const r2 = h1.applyDiff(current, new Diff([new Delta(0, "xxx", "111")])) as Result
             const c1 = Array.from(r2.newCommits)[0]
             const r3 = r2.newHistory.toggle(c1) as Result
-            const r4 = r3.newHistory.apply_diff(current, new Diff([new Delta(0, "xxx", "222")])) as Result
+            const r4 = r3.newHistory.applyDiff(current, new Diff([new Delta(0, "xxx", "222")])) as Result
             const c2 = Array.from(r4.newCommits)[0]
 
             const r5 = r4.newHistory.toggle(c1) as Result

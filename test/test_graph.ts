@@ -1,8 +1,9 @@
+/* eslint-disable @typescript-eslint/explicit-function-return-type */
 import * as chai from 'chai'
 chai.should()
 
 import * as u from "./utils"
-import { ImmutableDirectedGraph, MutableDirectedGraph, to_mutable, to_immutable } from '../src/graph'
+import { ImmutableDirectedGraph, MutableDirectedGraph, toMutable, toImmutable } from '../src/graph'
 
 describe('DirectedGraph', () => {
     describe('validation', () => {
@@ -17,7 +18,7 @@ describe('DirectedGraph', () => {
                 .should.throw()
         })
         u.it('a graph can have additional constraints', () => {
-            (() => new ImmutableDirectedGraph<number, string>(new Set([0]), new Map(), _ => "invalid"))
+            (() => new ImmutableDirectedGraph<number, string>(new Set([0]), new Map(), () => "invalid"))
                 .should.throw()
         })
     })
@@ -100,10 +101,10 @@ describe('MutableDirectedGraph', () => {
     })
 })
 
-describe('#to_mutable', () => {
+describe('#toMutable', () => {
     u.it('the original immutable graph should not be modified when the returned mutable graph is modified', () => {
         const g = new ImmutableDirectedGraph(new Set([0, 1]), new Map([[0, new Map([[1, ""]])]]))
-        const mutable = to_mutable(g)
+        const mutable = toMutable(g)
         mutable.addVertex(2)
         mutable.addEdge(1, 0, "")
         mutable.addEdge(0, 2, "")
@@ -112,10 +113,10 @@ describe('#to_mutable', () => {
     })
 })
 
-describe('#to_immutable', () => {
+describe('#toImmutable', () => {
     u.it('the returned immutable graph should not be modified when the mutable graph is modified', () => {
         const g = new MutableDirectedGraph(new Set([0, 1]), new Map([[0, new Map([[1, ""]])]]))
-        const immutable = to_immutable(g)
+        const immutable = toImmutable(g)
         g.addVertex(2)
         g.addEdge(1, 0, "")
         g.addEdge(0, 2, "")
