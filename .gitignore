@@ -1,11 +1,13 @@
 *
 !*/
 !/.gitignore
+!/NOTICE.md
+!/.vscode/*.json
 !/package.json
 !/package-lock.json
 !/.github/workflows/*.yml
 !/tsconfig.json
 !/.eslintrc.json
-!/src/*.ts
-!/test/*.ts
+!/src/**/*.ts
+!/test/**/*.ts
 !/test/performance/*.ts
