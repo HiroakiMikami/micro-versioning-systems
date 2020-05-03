@@ -1,10 +1,10 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import { CommitHistory } from '../commit';
+import { CommitHistory, FailToResolveDependency } from '../commit';
 import { SegmentHistory } from '../segment';
 import { ImmutableDirectedGraph } from '../graph';
-import { Diff, Delta, DeleteNonExistingText } from '../diff';
+import { Diff, Delta, DeleteNonExistingText, ModifyAlreadyModifiedText } from '../diff';
 
 class State {
     public constructor(public text: string,
@@ -19,8 +19,87 @@ function createEmptyStateIfNeeded(document: vscode.TextDocument) {
             new SegmentHistory(new Map(), new ImmutableDirectedGraph(new Set(), new Map()), ""),
             new Map(),
             new ImmutableDirectedGraph(new Set(), new Map()));
-        states.set(document.uri.fsPath, new State(document.getText(), empty));
+        const result = empty.applyDiff(new Date(), new Diff([new Delta(0, "", document.getText())]))
+        if (result instanceof DeleteNonExistingText) {
+            // TODO error
+            return
+        }
+        states.set(document.uri.fsPath, new State(document.getText(), result.newHistory));
     }
+}
+function commit(document: vscode.TextDocument): ReadonlyArray<string> {
+    createEmptyStateIfNeeded(document)
+    const state = states.get(document.uri.fsPath)
+    if (state.change === null) {
+        // TODO warning
+        return []
+    }
+    const result = state.history.applyDiff(new Date(), state.change)
+    if (result instanceof DeleteNonExistingText) {
+        // TODO error
+        return []
+    }
+
+    // Update state
+    state.change = null
+    state.history = result.newHistory
+    state.text = document.getText()
+    return Array.from(result.newCommits)
+}
+async function toggle(editor: vscode.TextEditor, commit: string) {
+    const document = editor.document
+    createEmptyStateIfNeeded(document)
+    const state = states.get(document.uri.fsPath)
+    const result = state.history.toggle(commit)
+    if (result instanceof DeleteNonExistingText) {
+        // TODO error
+        return
+    }
+    if (result instanceof FailToResolveDependency) {
+        // TODO error
+        return
+    }
+    let diff = result.diff
+    let d1 = null
+    if (state.change != null) {
+        let d0 = diff.rebase(state.change)
+        d1 = state.change.rebase(diff)
+        if (d0 instanceof ModifyAlreadyModifiedText) {
+            // TODO error
+            return
+        }
+        if (d1 instanceof ModifyAlreadyModifiedText) {
+            // TODO error
+            return
+        }
+        diff = d0
+    }
+    
+    // Apply edit
+    await editor.edit(editBuilder => {
+        for (const delta of diff.deltas) {
+            if (delta.insert.length !== 0 && delta.remove.length !== 0) {
+                // Replace
+                editBuilder.replace(new vscode.Range(
+                    document.positionAt(delta.offset),
+                    document.positionAt(delta.offset + delta.remove.length)
+                ), delta.insert)
+            } else if (delta.insert.length !== 0) {
+                // Insert
+                editBuilder.insert(document.positionAt(delta.offset), delta.insert)
+            } else {
+                // Remove
+                editBuilder.delete(new vscode.Range(
+                    document.positionAt(delta.offset),
+                    document.positionAt(delta.offset + delta.remove.length)
+                ))
+            }
+        }
+    })
+    // Update state
+    state.history = result.newHistory
+    state.text = document.getText()
+    state.change = d1
 }
 
 export function activate(context: vscode.ExtensionContext) {
@@ -30,6 +109,9 @@ export function activate(context: vscode.ExtensionContext) {
     }
     context.subscriptions.push(vscode.workspace.onDidOpenTextDocument(e => {
         createEmptyStateIfNeeded(e)
+    }))
+    context.subscriptions.push(vscode.workspace.onDidSaveTextDocument(e => {
+        commit(e)
     }))
 
     // Update diff when changing the text document
@@ -52,19 +134,14 @@ export function activate(context: vscode.ExtensionContext) {
         }
     }))
 
-	/*
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	let disposable = vscode.commands.registerCommand('extension.helloWorld', () => {
-		// The code you place here will be executed every time your command is executed
-
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World!');
-	});
-
-	context.subscriptions.push(disposable);
-	*/
+    context.subscriptions.push(vscode.commands.registerCommand(
+        'micro-versioning-systems.commit', document => commit(document)
+    ))
+    context.subscriptions.push(vscode.commands.registerCommand(
+        'micro-versioning-systems.toggle', async (editor, commit) => {
+            await toggle(editor, commit)
+        }
+    ))
 }
 
 // this method is called when your extension is deactivated

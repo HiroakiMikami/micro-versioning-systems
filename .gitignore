@@ -10,4 +10,5 @@
 !/.eslintrc.json
 !/src/**/*.ts
 !/test/**/*.ts
+!/test/vscode/fixture/*
 !/test/performance/*.ts

@@ -25,7 +25,8 @@
             "runtimeExecutable": "${execPath}",
             "args": [
                 "--extensionDevelopmentPath=${workspaceFolder}",
-                "--extensionTestsPath=${workspaceFolder}/out/test/vscode/suite/index"
+                "--extensionTestsPath=${workspaceFolder}/out/test/vscode/suite/index",
+                "${workspaceFolder}/test/vscode/fixture"
             ],
             "outFiles": [
                 "${workspaceFolder}/out/test/**/*.js"
