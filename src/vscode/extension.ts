@@ -5,6 +5,7 @@ import { CommitHistory, FailToResolveDependency } from '../commit';
 import { SegmentHistory } from '../segment';
 import { ImmutableDirectedGraph } from '../graph';
 import { Diff, Delta, DeleteNonExistingText, ModifyAlreadyModifiedText } from '../diff';
+import { GraphViewerPanel } from "./graph_viewer"
 
 class State {
     public constructor(public text: string,
@@ -160,6 +161,18 @@ export function activate(context: vscode.ExtensionContext) {
             await toggle(editor, commit)
         }
     ))
+
+    // View Graph
+	context.subscriptions.push(
+		vscode.commands.registerCommand('microVersioningSystems.viewGraph', async () => {
+            const content = await GraphViewerPanel.readContent(context.extensionPath)
+            const editor = vscode.window.activeTextEditor
+            if (editor != null) {
+                // TODO close
+                new GraphViewerPanel(editor.document.uri.fsPath, context.extensionPath, content)
+            }
+		})
+	);
 }
 
 // this method is called when your extension is deactivated

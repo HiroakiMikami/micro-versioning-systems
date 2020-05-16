@@ -63,6 +63,13 @@
           "description": "Wait time [ms] between file save and commit"
         }
       }
-    }
+    },
+		"commands": [
+			{
+				"command": "microVersioningSystems.viewGraph",
+				"title": "Show the graph of micro versioning history",
+				"category": "Micro-Versioning Systems"
+      }
+    ]
   }
 }

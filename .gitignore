@@ -3,6 +3,7 @@
 !/.gitignore
 !/NOTICE.md
 !/.vscode/*.json
+!/resources/*.html
 !/package.json
 !/package-lock.json
 !/.github/workflows/*.yml
