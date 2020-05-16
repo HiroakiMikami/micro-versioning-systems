@@ -9,7 +9,8 @@ import { Diff, Delta, DeleteNonExistingText, ModifyAlreadyModifiedText } from '.
 class State {
     public constructor(public text: string,
                        public history: CommitHistory,
-                       public change?: Diff) { }
+                       public change: Diff | null,
+                       public modifiedAfterSave: boolean) { }
 }
 const states = new Map<string, State>();
 
@@ -24,7 +25,7 @@ function createEmptyStateIfNeeded(document: vscode.TextDocument) {
             // TODO error
             return
         }
-        states.set(document.uri.fsPath, new State(document.getText(), result.newHistory));
+        states.set(document.uri.fsPath, new State(document.getText(), result.newHistory, null, false));
     }
 }
 function commit(document: vscode.TextDocument): ReadonlyArray<string> {
@@ -132,6 +133,23 @@ export function activate(context: vscode.ExtensionContext) {
         } else {
             states.get(e.document.uri.fsPath).change = newDiff
         }
+        states.get(e.document.uri.fsPath).modifiedAfterSave = true
+    }))
+    context.subscriptions.push(vscode.workspace.onDidSaveTextDocument(e => {
+        if (!states.has(e.uri.fsPath)) {
+            // TODO error message
+        }
+        const timeoutMs = vscode.workspace.getConfiguration("microVersioningSystems").commitTimeout
+        const state = states.get(e.uri.fsPath)
+        if (state.modifiedAfterSave) {
+            state.modifiedAfterSave = false;
+        }
+        setTimeout(() => {
+            if (!state.modifiedAfterSave) {
+                // commit
+                commit(e)
+            }
+        }, timeoutMs)
     }))
 
     context.subscriptions.push(vscode.commands.registerCommand(

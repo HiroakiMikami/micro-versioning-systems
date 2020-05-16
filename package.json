@@ -50,5 +50,19 @@
     "uuid": "^3.4.0"
   },
 	"activationEvents": ["*"],
-	"main": "./out/src/vscode/extension.js"
+  "main": "./out/src/vscode/extension.js",
+  "contributes": {
+    "configuration": {
+      "type": "object",
+      "title": "Micro-versioning systems configuration",
+      "properties": {
+        "microVersioningSystems.commitTimeout": {
+          "scope": "window",
+          "type": "number",
+          "default": 1000,
+          "description": "Wait time [ms] between file save and commit"
+        }
+      }
+    }
+  }
 }
