@@ -29,7 +29,7 @@ function createEmptyStateIfNeeded(document: vscode.TextDocument) {
         states.set(document.uri.fsPath, new State(document.getText(), result.newHistory, null, false));
     }
 }
-function commit(document: vscode.TextDocument): ReadonlyArray<string> {
+export function commit(document: vscode.TextDocument): ReadonlyArray<string> {
     createEmptyStateIfNeeded(document)
     const state = states.get(document.uri.fsPath)
     if (state.change === null) {
@@ -48,7 +48,7 @@ function commit(document: vscode.TextDocument): ReadonlyArray<string> {
     state.text = document.getText()
     return Array.from(result.newCommits)
 }
-async function toggle(editor: vscode.TextEditor, commit: string) {
+export async function toggle(editor: vscode.TextEditor, commit: string) {
     const document = editor.document
     createEmptyStateIfNeeded(document)
     const state = states.get(document.uri.fsPath)
@@ -168,8 +168,13 @@ export function activate(context: vscode.ExtensionContext) {
             const content = await GraphViewerPanel.readContent(context)
             const editor = vscode.window.activeTextEditor
             if (editor != null) {
+                if (!states.has(editor.document.uri.fsPath)) {
+                    // TODO error message
+                }
+                const state = states.get(editor.document.uri.fsPath)
                 // TODO close
-                new GraphViewerPanel(editor.document.uri.fsPath, context.extensionPath, content)
+                const panel = new GraphViewerPanel(editor.document, context.extensionPath, content)
+                panel.update(state.history)
             }
 		})
 	);
