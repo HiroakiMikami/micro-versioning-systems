@@ -165,7 +165,7 @@ export function activate(context: vscode.ExtensionContext) {
     // View Graph
 	context.subscriptions.push(
 		vscode.commands.registerCommand('microVersioningSystems.viewGraph', async () => {
-            const content = await GraphViewerPanel.readContent(context.extensionPath)
+            const content = await GraphViewerPanel.readContent(context)
             const editor = vscode.window.activeTextEditor
             if (editor != null) {
                 // TODO close

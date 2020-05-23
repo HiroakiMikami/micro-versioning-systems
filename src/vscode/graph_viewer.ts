@@ -17,13 +17,20 @@ export class GraphViewerPanel {
 			"", `History of ${uri}`, column,
 			{
 				enableScripts: true,
-				localResourceRoots: [vscode.Uri.file(path.join(extensionPath, "resources"))]
+				localResourceRoots: [
+                    vscode.Uri.file(path.join(extensionPath, "resources")),
+                    vscode.Uri.file(path.join(extensionPath, "out", "src", "vscode", "graphView")),
+                ]
 			}
 		)
 		this.panel.webview.html = content;
 	}
-	static async readContent(extensionPath: string) {
-		return await promisify(fs.readFile)(path.join(extensionPath, "resources", "graph_viewer.html"), "utf8")
-		
+    static async readContent(context: vscode.ExtensionContext): Promise<string> {
+		let content = await promisify(fs.readFile)(context.asAbsolutePath(path.join("resources", "graph_viewer.html")), "utf8")
+		const scriptDir = vscode.Uri.file(context.asAbsolutePath(path.join("out", "src", "vscode", "graphView")))
+        content = content.replace("{script-dir}", scriptDir.with({ scheme: "vscode-resource" }).toString(true))
+
+		return content
+
 	}
 }

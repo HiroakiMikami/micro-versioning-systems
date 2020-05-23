@@ -9,7 +9,7 @@
 		"moduleResolution": "node",
 		"rootDir": ".",
 		"outDir": "out",
-		"lib": [ "es2016" ],
+		"lib": [ "dom", "es2016" ],
 		"sourceMap": true
 	},
 	"exclude": [
