@@ -1,6 +1,7 @@
 *
 !*/
 !/.gitignore
+!/webpack.config.js
 !/NOTICE.md
 !/.vscode/*.json
 !/resources/*.html
