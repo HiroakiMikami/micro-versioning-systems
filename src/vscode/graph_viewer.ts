@@ -69,7 +69,7 @@ export class GraphViewerPanel {
         this.panel.webview.html = content;
 		this.panel.onDidDispose(() => this.dispose(), null, this.disposables);
         this.panel.webview.onDidReceiveMessage(async message => {
-            // TODO message
+            vscode.window.showInformationMessage(`toggle the commit ${message.id}`)
             const editor = await vscode.window.showTextDocument(document)
             await toggle(editor, message.id)
         }, null, this.disposables)

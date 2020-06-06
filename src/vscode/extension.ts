@@ -23,7 +23,10 @@ function createEmptyStateIfNeeded(document: vscode.TextDocument) {
             new ImmutableDirectedGraph(new Set(), new Map()));
         const result = empty.applyDiff(new Date(), new Diff([new Delta(0, "", document.getText())]))
         if (result instanceof DeleteNonExistingText) {
-            // TODO error
+            vscode.window.showErrorMessage(
+                `Error during initializing the state for ${document.uri.fsPath}: ` +
+                `Delete non-existing text: ${result.offset}: expected=${result.expected}, actual=${result.actual}`
+            )
             return
         }
         states.set(document.uri.fsPath, new State(document.getText(), result.newHistory, null, false));
@@ -33,12 +36,15 @@ export function commit(document: vscode.TextDocument): ReadonlyArray<string> {
     createEmptyStateIfNeeded(document)
     const state = states.get(document.uri.fsPath)
     if (state.change === null) {
-        // TODO warning
+        vscode.window.showWarningMessage(`There is no change in ${document.uri.fsPath}`)
         return []
     }
     const result = state.history.applyDiff(new Date(), state.change)
     if (result instanceof DeleteNonExistingText) {
-        // TODO error
+        vscode.window.showErrorMessage(
+            `Error during commit for ${document.uri.fsPath}: ` +
+            `Delete non-existing text: ${result.offset}: expected=${result.expected}, actual=${result.actual}`
+        )
         return []
     }
 
@@ -54,24 +60,36 @@ export async function toggle(editor: vscode.TextEditor, commit: string) {
     const state = states.get(document.uri.fsPath)
     const result = state.history.toggle(commit)
     if (result instanceof DeleteNonExistingText) {
-        // TODO error
+        vscode.window.showErrorMessage(
+            `Error during toggle for ${document.uri.fsPath}: ` +
+            `Delete non-existing text: ${result.offset}: expected=${result.expected}, actual=${result.actual}`
+        )
         return
     }
     if (result instanceof FailToResolveDependency) {
-        // TODO error
+        vscode.window.showErrorMessage(
+            `Error during toggle for ${document.uri.fsPath}: ` + 
+            `Fail to resolve dependency: ${result.commit}`
+        )
         return
     }
     let diff = result.diff
     let d1 = null
     if (state.change != null) {
-        let d0 = diff.rebase(state.change)
+        const d0 = diff.rebase(state.change)
         d1 = state.change.rebase(diff)
         if (d0 instanceof ModifyAlreadyModifiedText) {
-            // TODO error
+            vscode.window.showErrorMessage(
+                `Error during toggle for ${document.uri.fsPath}: ` +
+                `Modified already modifed text: ${d0.offset} ${d0.text}`
+            )
             return
         }
         if (d1 instanceof ModifyAlreadyModifiedText) {
-            // TODO error
+            vscode.window.showErrorMessage(
+                `Error during toggle for ${document.uri.fsPath}: ` +
+                `Modified already modifed text: ${d1.offset} ${d1.text}`
+            )
             return
         }
         diff = d0
@@ -119,7 +137,8 @@ export function activate(context: vscode.ExtensionContext) {
     // Update diff when changing the text document
     context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(e => {
         if (!states.has(e.document.uri.fsPath)) {
-            // TODO error message
+            vscode.window.showErrorMessage(
+                `VSCode does not have the state for ${e.document.uri.fsPath}`)
         }
         const diff = new Diff(e.contentChanges.map(change => {
             return new Delta(change.rangeOffset,
@@ -130,7 +149,10 @@ export function activate(context: vscode.ExtensionContext) {
         const oldDiff = states.get(e.document.uri.fsPath).change || new Diff([])
         const newDiff = oldDiff.then(diff)
         if (newDiff instanceof DeleteNonExistingText) {
-            // TODO error dialog
+            vscode.window.showErrorMessage(
+                `Error during updating the changes for ${e.document.uri.fsPath}: ` +
+                `Delete non-existing text: ${newDiff.offset}: expected=${newDiff.expected}, actual=${newDiff.actual}`
+            )
         } else {
             states.get(e.document.uri.fsPath).change = newDiff
         }
@@ -138,7 +160,8 @@ export function activate(context: vscode.ExtensionContext) {
     }))
     context.subscriptions.push(vscode.workspace.onDidSaveTextDocument(e => {
         if (!states.has(e.uri.fsPath)) {
-            // TODO error message
+            vscode.window.showErrorMessage(
+                `VSCode does not have the state for ${e.uri.fsPath}`)
         }
         const timeoutMs = vscode.workspace.getConfiguration("microVersioningSystems").commitTimeout
         const state = states.get(e.uri.fsPath)
@@ -169,7 +192,8 @@ export function activate(context: vscode.ExtensionContext) {
             const editor = vscode.window.activeTextEditor
             if (editor != null) {
                 if (!states.has(editor.document.uri.fsPath)) {
-                    // TODO error message
+                    vscode.window.showErrorMessage(
+                        `VSCode does not have the state for ${editor.document.uri.fsPath}`)
                 }
                 const state = states.get(editor.document.uri.fsPath)
                 // TODO close
