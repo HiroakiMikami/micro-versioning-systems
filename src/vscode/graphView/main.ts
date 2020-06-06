@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import * as d3 from "d3"
 import { SerializableHistory, SerializableCommit, SerializableRelation } from '../graph_viewer';
 import { Status } from '../../common';
@@ -15,12 +16,12 @@ function onReady(callback: () => void): void {
     }
 }
 
-function update(history: SerializableHistory) {
+function update(history: SerializableHistory): void {
 	const svg = d3.select("svg")
 	// TODO Remove old content
 	// TODO Resize SVG after resizing
-	const width = (<Element>svg.node()).getBoundingClientRect().width;
-	const height = (<Element>svg.node()).getBoundingClientRect().height;
+	const width = (svg.node() as Element).getBoundingClientRect().width;
+	const height = (svg.node() as Element).getBoundingClientRect().height;
 	const color = d3.schemeCategory10;
 
 	type Node = SerializableCommit & d3.SimulationNodeDatum;

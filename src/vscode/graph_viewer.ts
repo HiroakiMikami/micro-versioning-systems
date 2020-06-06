@@ -78,7 +78,7 @@ export class GraphViewerPanel {
         await this.panel.webview.postMessage({ "method": "update", "body": new SerializableHistory(history) })
         return
     }
-	public dispose() {
+	public dispose(): void {
 		// Clean up our resources
 		this.panel.dispose();
 

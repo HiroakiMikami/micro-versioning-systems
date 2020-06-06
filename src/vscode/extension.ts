@@ -15,7 +15,7 @@ class State {
 }
 const states = new Map<string, State>();
 
-function createEmptyStateIfNeeded(document: vscode.TextDocument) { 
+function createEmptyStateIfNeeded(document: vscode.TextDocument): void { 
     if (!states.has(document.uri.fsPath)) {
         const empty = new CommitHistory(
             new SegmentHistory(new Map(), new ImmutableDirectedGraph(new Set(), new Map()), ""),
@@ -54,7 +54,7 @@ export function commit(document: vscode.TextDocument): ReadonlyArray<string> {
     state.text = document.getText()
     return Array.from(result.newCommits)
 }
-export async function toggle(editor: vscode.TextEditor, commit: string) {
+export async function toggle(editor: vscode.TextEditor, commit: string): Promise<void> {
     const document = editor.document
     createEmptyStateIfNeeded(document)
     const state = states.get(document.uri.fsPath)
@@ -120,9 +120,10 @@ export async function toggle(editor: vscode.TextEditor, commit: string) {
     state.history = result.newHistory
     state.text = document.getText()
     state.change = d1
+    return
 }
 
-export function activate(context: vscode.ExtensionContext) {
+export function activate(context: vscode.ExtensionContext): void {
     // Initialize state
     for (const document of vscode.workspace.textDocuments) {
         createEmptyStateIfNeeded(document)
@@ -205,4 +206,6 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 // this method is called when your extension is deactivated
-export function deactivate() { }
+export function deactivate(): void {
+    vscode.window.showInformationMessage("Deactivate micro-versioning systems")
+}
