@@ -1,16 +1,19 @@
 {
   "private": true,
   "name": "micro-versioning-systems",
+  "publisher": "HiroakiMikami",
+  "engines": {
+    "vscode": "^1.32.0"
+  },
   "version": "0.0.1",
   "description": "",
-  "main": "build/src/main.js",
   "scripts": {
-    "compile": "$(npm bin)/tsc -p ./",
+    "compile": "$(npm bin)/tsc -p ./ && $(npm bin)/webpack",
     "doc": "$(npm bin)/typedoc --out doc ./src/",
     "check-format": "$(npm bin)/eslint $(find ./src -name '*.ts') $(find ./test -name '*.ts')",
     "lint": "$(npm bin)/eslint --fix $(find ./src -name '*.ts') $(find ./test -name '*.ts')",
-    "watch": "$(npm bin)/tsc -w -p ./",
-    "test": "$(npm bin)/mocha $(find ./out/test -name '*.js')"
+    "watch": "$(npm bin)/concurrently --kill-others --allow-restart --restart-after 500 -r \"$(npm bin)/tsc -w -p ./\" \"webpack -w\"",
+    "test": "$(npm bin)/mocha $(find ./out/test -maxdepth 1 -name '*.js')"
   },
   "repository": {
     "type": "git",
@@ -25,19 +28,55 @@
   "devDependencies": {
     "@types/assert": "^1.4.6",
     "@types/chai": "^4.2.11",
+    "@types/d3": "^5.7.2",
+    "@types/glob": "^7.1.1",
     "@types/mocha": "^5.2.7",
+    "@types/node": "^13.13.2",
     "@types/uuid": "^3.4.8",
+    "@types/vscode": "^1.44.0",
     "@typescript-eslint/eslint-plugin": "^2.24.0",
     "@typescript-eslint/parser": "^2.24.0",
     "chai": "^4.2.0",
+    "concurrently": "^5.2.0",
     "eslint": "^6.8.0",
+    "glob": "^7.1.6",
     "mocha": "^5.2.0",
+    "source-map-support": "^0.5.19",
     "typedoc": "^0.16.11",
     "typemoq": "^2.1.0",
-    "typescript": "^3.8.3"
+    "typescript": "^3.8.3",
+    "vscode-test": "^1.3.0",
+    "webpack": "^4.43.0",
+    "webpack-cli": "^3.3.11"
   },
   "dependencies": {
     "assert": "^2.0.0",
+    "d3": "^5.16.0",
     "uuid": "^3.4.0"
+  },
+  "activationEvents": [
+    "*"
+  ],
+  "main": "./out/src/vscode/extension.js",
+  "contributes": {
+    "configuration": {
+      "type": "object",
+      "title": "Micro-versioning systems configuration",
+      "properties": {
+        "microVersioningSystems.commitTimeout": {
+          "scope": "window",
+          "type": "number",
+          "default": 1000,
+          "description": "Wait time [ms] between file save and commit"
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "microVersioningSystems.viewGraph",
+        "title": "Show History Graph",
+        "category": "Micro-Versioning Systems"
+      }
+    ]
   }
 }
