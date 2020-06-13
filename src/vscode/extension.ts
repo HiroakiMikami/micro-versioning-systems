@@ -6,12 +6,27 @@ import { SegmentHistory } from '../segment';
 import { ImmutableDirectedGraph } from '../graph';
 import { Diff, Delta, DeleteNonExistingText, ModifyAlreadyModifiedText } from '../diff';
 import { GraphViewerPanel } from "./graph_viewer"
+import { evaluate } from '../score';
 
 class State {
+    private scores: ReadonlyMap<string, number>
     public constructor(public text: string,
-                       public history: CommitHistory,
+                       private history: CommitHistory,
                        public change: Diff | null,
-                       public modifiedAfterSave: boolean) { }
+                       public modifiedAfterSave: boolean) {
+        this.scores = evaluate(history.commits)
+    }
+                       
+    public getHistory(): CommitHistory {
+        return this.history
+    }
+    public getScores(): ReadonlyMap<string, number> {
+        return this.scores
+    }
+    public setHistory(history: CommitHistory): void {
+        this.history = history
+        this.scores = evaluate(this.history.commits)
+    }
 }
 const states = new Map<string, State>();
 
@@ -39,7 +54,7 @@ export function commit(document: vscode.TextDocument): ReadonlyArray<string> {
         vscode.window.showWarningMessage(`There is no change in ${document.uri.fsPath}`)
         return []
     }
-    const result = state.history.applyDiff(new Date(), state.change)
+    const result = state.getHistory().applyDiff(new Date(), state.change)
     if (result instanceof DeleteNonExistingText) {
         vscode.window.showErrorMessage(
             `Error during commit for ${document.uri.fsPath}: ` +
@@ -50,7 +65,7 @@ export function commit(document: vscode.TextDocument): ReadonlyArray<string> {
 
     // Update state
     state.change = null
-    state.history = result.newHistory
+    state.setHistory(result.newHistory)
     state.text = document.getText()
     return Array.from(result.newCommits)
 }
@@ -58,7 +73,7 @@ export async function toggle(editor: vscode.TextEditor, commit: string): Promise
     const document = editor.document
     createEmptyStateIfNeeded(document)
     const state = states.get(document.uri.fsPath)
-    const result = state.history.toggle(commit)
+    const result = state.getHistory().toggle(commit)
     if (result instanceof DeleteNonExistingText) {
         vscode.window.showErrorMessage(
             `Error during toggle for ${document.uri.fsPath}: ` +
@@ -117,7 +132,7 @@ export async function toggle(editor: vscode.TextEditor, commit: string): Promise
         }
     })
     // Update state
-    state.history = result.newHistory
+    state.setHistory(result.newHistory)
     state.text = document.getText()
     state.change = d1
     return
@@ -199,7 +214,7 @@ export function activate(context: vscode.ExtensionContext): void {
                 const state = states.get(editor.document.uri.fsPath)
                 // TODO close
                 const panel = new GraphViewerPanel(editor.document, context.extensionPath, content)
-                panel.update(state.history)
+                panel.update(state.getHistory())
             }
 		})
 	);

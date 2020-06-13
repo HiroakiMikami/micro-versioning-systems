@@ -5,7 +5,7 @@ import { Commit } from './commit'
  * @param commits The set of commit to be calculated scores
  * @returns the score for each commit
  */
-function evaluate(commits: Map<string, Commit>): Map<string, number> {
+function evaluate(commits: ReadonlyMap<string, Commit>): ReadonlyMap<string, number> {
     let minTime = null
     let maxTime = null
     for (const elem of commits) {
