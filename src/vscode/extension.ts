@@ -7,16 +7,17 @@ import { ImmutableDirectedGraph } from '../graph';
 import { Diff, Delta, DeleteNonExistingText, ModifyAlreadyModifiedText } from '../diff';
 import { GraphViewerPanel } from "./graph_viewer"
 import { evaluate } from '../score';
+import { Status } from '../common';
 
 class State {
     private scores: ReadonlyMap<string, number>
     public constructor(public text: string,
-                       private history: CommitHistory,
-                       public change: Diff | null,
-                       public modifiedAfterSave: boolean) {
+        private history: CommitHistory,
+        public change: Diff | null,
+        public modifiedAfterSave: boolean) {
         this.scores = evaluate(history.commits)
     }
-                       
+
     public getHistory(): CommitHistory {
         return this.history
     }
@@ -26,11 +27,11 @@ class State {
     public setHistory(history: CommitHistory): void {
         this.history = history
         this.scores = evaluate(this.history.commits)
+        provider.onDidChangeCodeLensesEmitter.fire()
     }
 }
 const states = new Map<string, State>();
-
-function createEmptyStateIfNeeded(document: vscode.TextDocument): void { 
+function createEmptyStateIfNeeded(document: vscode.TextDocument): void {
     if (!states.has(document.uri.fsPath)) {
         const empty = new CommitHistory(
             new SegmentHistory(new Map(), new ImmutableDirectedGraph(new Set(), new Map()), ""),
@@ -69,8 +70,8 @@ export function commit(document: vscode.TextDocument): ReadonlyArray<string> {
     state.text = document.getText()
     return Array.from(result.newCommits)
 }
-export async function toggle(editor: vscode.TextEditor, commit: string): Promise<void> {
-    const document = editor.document
+export async function toggle(document: vscode.TextDocument, commit: string): Promise<void> {
+    const editor = await vscode.window.showTextDocument(document)
     createEmptyStateIfNeeded(document)
     const state = states.get(document.uri.fsPath)
     const result = state.getHistory().toggle(commit)
@@ -83,7 +84,7 @@ export async function toggle(editor: vscode.TextEditor, commit: string): Promise
     }
     if (result instanceof FailToResolveDependency) {
         vscode.window.showErrorMessage(
-            `Error during toggle for ${document.uri.fsPath}: ` + 
+            `Error during toggle for ${document.uri.fsPath}: ` +
             `Fail to resolve dependency: ${result.commit}`
         )
         return
@@ -109,7 +110,7 @@ export async function toggle(editor: vscode.TextEditor, commit: string): Promise
         }
         diff = d0
     }
-    
+
     // Apply edit
     await editor.edit(editBuilder => {
         for (const delta of diff.deltas) {
@@ -136,6 +137,69 @@ export async function toggle(editor: vscode.TextEditor, commit: string): Promise
     state.text = document.getText()
     state.change = d1
     return
+}
+
+let provider: CandidateCodeLensProvider = null
+class CandidateCodeLensProvider implements vscode.CodeLensProvider {
+    public readonly onDidChangeCodeLensesEmitter = new vscode.EventEmitter<void>()
+    public readonly onDidChangeCodeLenses?: vscode.Event<void> = this.onDidChangeCodeLensesEmitter.event
+    constructor() {
+        vscode.workspace.onDidChangeConfiguration((_) => {
+            this.onDidChangeCodeLensesEmitter.fire();
+        });
+    }
+    provideCodeLenses(document: vscode.TextDocument, token: vscode.CancellationToken): vscode.ProviderResult<vscode.CodeLens[]> {
+        createEmptyStateIfNeeded(document)
+        const state = states.get(document.uri.fsPath)
+        const scores = Array.from(state.getScores())
+        scores.sort((x, y) => {
+            if (x[1] < y[1]) {
+                return 1
+            } else if (x[1] > y[1]) {
+                return -1;
+            } else {
+                return 0;
+            }
+        })
+        let numCandidates = vscode.workspace.getConfiguration("microVersioningSystems").numCandidates
+        numCandidates = Math.min(numCandidates, scores.length)
+        let codeLenses = []
+        for (let i = 0; i < numCandidates; ++i) {
+            const commitId = scores[i][0];
+            const commit = state.getHistory().commits.get(commitId)
+            let minOffset = state.text.length
+            let maxOffset = 0
+            for (const segmentId of commit.remove) {
+                const segment = state.getHistory().history.segments.get(segmentId)
+                minOffset = Math.min(minOffset, segment.offset)
+                maxOffset = Math.max(maxOffset, segment.offset)
+                if (segment.status == Status.Enabled) {
+                    maxOffset = Math.max(maxOffset, segment.offset + segment.text.length)
+                }
+            }
+            for (const segmentId of commit.insert) {
+                const segment = state.getHistory().history.segments.get(segmentId)
+                minOffset = Math.min(minOffset, segment.offset)
+                maxOffset = Math.max(maxOffset, segment.offset)
+                if (segment.status == Status.Enabled) {
+                    maxOffset = Math.max(maxOffset, segment.offset + segment.text.length)
+                }
+            }
+            const range = new vscode.Range(document.positionAt(minOffset), document.positionAt(maxOffset))
+            codeLenses.push(new vscode.CodeLens(
+                range,
+                {
+                    title: "micro-versioning-systems:toggle",
+                    tooltip: "", // TODO
+                    command: "micro-versioning-systems.toggle",
+                    arguments: [document, commitId]
+                }));
+        }
+        return codeLenses;
+    }
+    resolveCodeLens?(codeLens: vscode.CodeLens, token: vscode.CancellationToken): vscode.ProviderResult<vscode.CodeLens> {
+        return codeLens
+    }
 }
 
 export function activate(context: vscode.ExtensionContext): void {
@@ -196,14 +260,19 @@ export function activate(context: vscode.ExtensionContext): void {
         'micro-versioning-systems.commit', document => commit(document)
     ))
     context.subscriptions.push(vscode.commands.registerCommand(
-        'micro-versioning-systems.toggle', async (editor, commit) => {
-            await toggle(editor, commit)
+        'micro-versioning-systems.toggle', async (document, commit) => {
+            await toggle(document, commit)
         }
     ))
 
+    provider = new CandidateCodeLensProvider()
+    context.subscriptions.push(vscode.languages.registerCodeLensProvider(
+        "*", provider
+    ))
+
     // View Graph
-	context.subscriptions.push(
-		vscode.commands.registerCommand('microVersioningSystems.viewGraph', async () => {
+    context.subscriptions.push(
+        vscode.commands.registerCommand('microVersioningSystems.viewGraph', async () => {
             const content = await GraphViewerPanel.readContent(context)
             const editor = vscode.window.activeTextEditor
             if (editor != null) {
@@ -216,8 +285,8 @@ export function activate(context: vscode.ExtensionContext): void {
                 const panel = new GraphViewerPanel(editor.document, context.extensionPath, content)
                 panel.update(state.getHistory())
             }
-		})
-	);
+        })
+    );
 }
 
 // this method is called when your extension is deactivated

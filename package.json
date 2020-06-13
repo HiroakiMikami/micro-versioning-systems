@@ -68,6 +68,12 @@
           "type": "number",
           "default": 1000,
           "description": "Wait time [ms] between file save and commit"
+        },
+        "microVersioningSystems.numCandidates": {
+          "scope": "window",
+          "type": "number",
+          "default": 5,
+          "description": "Number of candidates shown in the editor"
         }
       }
     },
