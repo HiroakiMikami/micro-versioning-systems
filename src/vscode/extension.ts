@@ -190,9 +190,8 @@ class CandidateCodeLensProvider implements vscode.CodeLensProvider {
                 range,
                 {
                     title: "micro-versioning-systems:toggle",
-                    tooltip: "", // TODO
-                    command: "micro-versioning-systems.toggle",
-                    arguments: [document, commitId]
+                    command: "micro-versioning-systems.moveto",
+                    arguments: [document, range]
                 }));
         }
         return codeLenses;
@@ -262,6 +261,12 @@ export function activate(context: vscode.ExtensionContext): void {
     context.subscriptions.push(vscode.commands.registerCommand(
         'micro-versioning-systems.toggle', async (document, commit) => {
             await toggle(document, commit)
+        }
+    ))
+    context.subscriptions.push(vscode.commands.registerCommand(
+        'micro-versioning-systems.moveto', async (document, range: vscode.Range) => {
+            const editor = await vscode.window.showTextDocument(document)
+            editor.selections = [new vscode.Selection(range.start, range.end)]
         }
     ))
 
