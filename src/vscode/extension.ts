@@ -24,10 +24,11 @@ class State {
     public getScores(): ReadonlyMap<string, number> {
         return this.scores
     }
-    public setHistory(history: CommitHistory): void {
+    public setHistory(history: CommitHistory, document: vscode.TextDocument): void {
         this.history = history
         this.scores = evaluate(this.history.commits)
-        provider.onDidChangeCodeLensesEmitter.fire()
+        candidateUpdater.updateCandidates(document)
+        codeLensProvider.onDidChangeCodeLensesEmitter.fire()
     }
 }
 const states = new Map<string, State>();
@@ -66,7 +67,7 @@ export function commit(document: vscode.TextDocument): ReadonlyArray<string> {
 
     // Update state
     state.change = null
-    state.setHistory(result.newHistory)
+    state.setHistory(result.newHistory, document)
     state.text = document.getText()
     return Array.from(result.newCommits)
 }
@@ -133,23 +134,32 @@ export async function toggle(document: vscode.TextDocument, commit: string): Pro
         }
     })
     // Update state
-    state.setHistory(result.newHistory)
+    state.setHistory(result.newHistory, document)
     state.text = document.getText()
     state.change = d1
     return
 }
 
-let provider: CandidateCodeLensProvider = null
-class CandidateCodeLensProvider implements vscode.CodeLensProvider {
-    public readonly onDidChangeCodeLensesEmitter = new vscode.EventEmitter<void>()
-    public readonly onDidChangeCodeLenses?: vscode.Event<void> = this.onDidChangeCodeLensesEmitter.event
+class Candidate {
+    public constructor(public readonly document: vscode.TextDocument,
+                       public readonly range: vscode.Range,
+                       public readonly commitId: string,
+                       public readonly diff: Diff) {}
+}
+
+let candidateUpdater: CandidatesUpdater = null
+class CandidatesUpdater {
+    private candidates: Array<Candidate>
     constructor() {
-        vscode.workspace.onDidChangeConfiguration((_) => {
-            this.onDidChangeCodeLensesEmitter.fire();
-        });
+        this.candidates = []
     }
-    provideCodeLenses(document: vscode.TextDocument, token: vscode.CancellationToken): vscode.ProviderResult<vscode.CodeLens[]> {
+    public getCandidates(): ReadonlyArray<Candidate> {
+        return this.candidates;
+    }
+
+    updateCandidates(document: vscode.TextDocument): void {
         createEmptyStateIfNeeded(document)
+        this.candidates = []
         const state = states.get(document.uri.fsPath)
         const scores = Array.from(state.getScores())
         scores.sort((x, y) => {
@@ -163,7 +173,6 @@ class CandidateCodeLensProvider implements vscode.CodeLensProvider {
         })
         let numCandidates = vscode.workspace.getConfiguration("microVersioningSystems").numCandidates
         numCandidates = Math.min(numCandidates, scores.length)
-        let codeLenses = []
         for (let i = 0; i < numCandidates; ++i) {
             const commitId = scores[i][0];
             const commit = state.getHistory().commits.get(commitId)
@@ -186,12 +195,71 @@ class CandidateCodeLensProvider implements vscode.CodeLensProvider {
                 }
             }
             const range = new vscode.Range(document.positionAt(minOffset), document.positionAt(maxOffset))
+            const result = state.getHistory().toggle(commitId)
+            if (result instanceof DeleteNonExistingText) {
+                vscode.window.showErrorMessage(
+                    `Error during toggle for ${document.uri.fsPath}: ` +
+                    `Delete non-existing text: ${result.offset}: expected=${result.expected}, actual=${result.actual}`
+                )
+                continue
+            }
+            if (result instanceof FailToResolveDependency) {
+                vscode.window.showErrorMessage(
+                    `Error during toggle for ${document.uri.fsPath}: ` +
+                    `Fail to resolve dependency: ${result.commit}`
+                )
+                continue
+            }
+            this.candidates.push(new Candidate(document, range, commitId, result.diff))
+        }
+    }
+}
+
+let _context: vscode.ExtensionContext = null
+let codeLensProvider: CandidateCodeLensProvider = null
+class CandidateCodeLensProvider implements vscode.CodeLensProvider {
+    private _codeLenses: Array<vscode.CodeLens>;
+    public readonly onDidChangeCodeLensesEmitter = new vscode.EventEmitter<void>()
+    public readonly onDidChangeCodeLenses?: vscode.Event<void> = this.onDidChangeCodeLensesEmitter.event
+    constructor() {
+        this._codeLenses = []
+        vscode.workspace.onDidChangeConfiguration((_) => {
+            this.onDidChangeCodeLensesEmitter.fire();
+        });
+    }
+    public getCodeLenses(): ReadonlyArray<vscode.CodeLens> {
+        return this._codeLenses;
+    }
+    provideCodeLenses(document: vscode.TextDocument, token: vscode.CancellationToken): vscode.ProviderResult<vscode.CodeLens[]> {
+        createEmptyStateIfNeeded(document)
+        const state = states.get(document.uri.fsPath)
+        const scores = Array.from(state.getScores())
+        scores.sort((x, y) => {
+            if (x[1] < y[1]) {
+                return 1
+            } else if (x[1] > y[1]) {
+                return -1;
+            } else {
+                return 0;
+            }
+        })
+        let numCandidates = vscode.workspace.getConfiguration("microVersioningSystems").numCandidates
+        for (let i = candidateHoverProviders.length; i < numCandidates; ++i) {
+            const provider = new CandidateHoverProvider(i);
+            _context.subscriptions.push(vscode.languages.registerHoverProvider(
+                "*", provider))
+            candidateHoverProviders.push(provider)
+        }
+        
+        numCandidates = Math.min(numCandidates, scores.length)
+        let codeLenses = []
+        for (const candidate of candidateUpdater.getCandidates()) {
             codeLenses.push(new vscode.CodeLens(
-                range,
+                candidate.range,
                 {
                     title: "micro-versioning-systems:toggle",
                     command: "micro-versioning-systems.moveto",
-                    arguments: [document, range]
+                    arguments: [document, candidate.range]
                 }));
         }
         return codeLenses;
@@ -201,11 +269,52 @@ class CandidateCodeLensProvider implements vscode.CodeLensProvider {
     }
 }
 
+let candidateHoverProviders: Array<CandidateHoverProvider> = []
+let showHover = true
+class CandidateHoverProvider implements vscode.HoverProvider {
+    public constructor(private index: number) {}
+    provideHover(document: vscode.TextDocument, position: vscode.Position,
+                 token: vscode.CancellationToken): vscode.ProviderResult<vscode.Hover> {
+        if (!showHover) {
+            return null
+        }
+        const candidates = candidateUpdater.getCandidates()
+        if (candidates.length <= this.index) {
+            return null;
+        }
+        const candidate = candidates[this.index]
+        if (candidate.range.contains(position)) {
+            const args = [document.uri.fsPath, candidate.commitId];
+    
+            const commandUri = vscode.Uri.parse(
+                `command:micro-versioning-systems.toggle?${encodeURIComponent(JSON.stringify(args))}`
+            );
+            let diff = []
+            for (const delta of candidate.diff.deltas) {
+                // TODO pre
+                diff.push(
+                    `${("    " + delta.offset).substr(-4)}: ${delta.remove} \u21D2 ${delta.insert}`)
+            }
+            const contents = new vscode.MarkdownString(
+                `### [Toggle ${candidate.commitId}](${commandUri})\n` +
+                `\n` +
+                `#### Diff\n` +
+                `\n` +
+                diff.join("\n")
+            )
+            contents.isTrusted = true;
+            return new vscode.Hover(contents)
+        }
+        return null;
+    }
+}
+
 export function activate(context: vscode.ExtensionContext): void {
     // Initialize state
     for (const document of vscode.workspace.textDocuments) {
         createEmptyStateIfNeeded(document)
     }
+    _context = context
     context.subscriptions.push(vscode.workspace.onDidOpenTextDocument(e => {
         createEmptyStateIfNeeded(e)
     }))
@@ -259,20 +368,23 @@ export function activate(context: vscode.ExtensionContext): void {
         'micro-versioning-systems.commit', document => commit(document)
     ))
     context.subscriptions.push(vscode.commands.registerCommand(
-        'micro-versioning-systems.toggle', async (document, commit) => {
+        'micro-versioning-systems.toggle', async (uri, commit) => {
+            const document = await vscode.workspace.openTextDocument(uri)
             await toggle(document, commit)
         }
     ))
     context.subscriptions.push(vscode.commands.registerCommand(
         'micro-versioning-systems.moveto', async (document, range: vscode.Range) => {
             const editor = await vscode.window.showTextDocument(document)
+            showHover = true;
             editor.selections = [new vscode.Selection(range.start, range.end)]
         }
     ))
 
-    provider = new CandidateCodeLensProvider()
+    candidateUpdater = new CandidatesUpdater()
+    codeLensProvider = new CandidateCodeLensProvider()
     context.subscriptions.push(vscode.languages.registerCodeLensProvider(
-        "*", provider
+        "*", codeLensProvider
     ))
 
     // View Graph
@@ -292,6 +404,12 @@ export function activate(context: vscode.ExtensionContext): void {
             }
         })
     );
+    // Toggle hover
+    context.subscriptions.push(vscode.commands.registerCommand(
+        'microVersioningSystems.toggleCandidatesHover', async () => {
+            showHover = !showHover
+        }
+    ))
 }
 
 // this method is called when your extension is deactivated

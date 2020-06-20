@@ -82,6 +82,11 @@
         "command": "microVersioningSystems.viewGraph",
         "title": "Show History Graph",
         "category": "Micro-Versioning Systems"
+      },
+      {
+        "command": "microVersioningSystems.toggleCandidatesHover",
+        "title": "Toggle visibility of candidates hover",
+        "category": "Micro-Versioning Systems"
       }
     ]
   }
