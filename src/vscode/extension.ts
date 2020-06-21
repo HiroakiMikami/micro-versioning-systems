@@ -291,15 +291,51 @@ class CandidateHoverProvider implements vscode.HoverProvider {
             );
             let diff = []
             for (const delta of candidate.diff.deltas) {
-                // TODO pre
-                diff.push(
-                    `${("    " + delta.offset).substr(-4)}: ${delta.remove} \u21D2 ${delta.insert}`)
+                const begin = document.positionAt(delta.offset)
+                const lineNumberStr = (line: number): string => {
+                    return ("    " + (line + 1)).substr(-4)
+                }
+                if (delta.remove.split("\n").length > 1 || delta.insert.split("\n").length > 1) {
+                    if (delta.insert === "") {
+                        const lines = delta.remove.split("\n")
+                        for (let i = 0; i < lines.length; i++) {
+                            let line = lines[i]
+                            if (i == 0) {
+                                line = ' '.repeat(begin.character) + line
+                            }
+                            diff.push(
+                                `${lineNumberStr(begin.line + i)}: ~~\`${line}\`~~  `
+                            )
+                        }
+                    } else {
+                        const lines = delta.insert.split("\n")
+                        for (let i = 0; i < lines.length; i++) {
+                            let line = lines[i]
+                            if (i == 0) {
+                                line = ' '.repeat(begin.character) + line
+                            }
+                            diff.push(
+                                `${lineNumberStr(begin.line + i)}: \`${line}\`  `
+                            )
+                        }
+                    }
+                } else {
+                    if (delta.insert === "") {
+                        diff.push(
+                            `${lineNumberStr(begin.line)}: ~~\`${delta.remove}\`~~`
+                        )
+                    } else {
+                        diff.push(
+                            `${lineNumberStr(begin.line)}: ~~\`${delta.remove}\`~~ \u21D2 \`${delta.insert}\``
+                        )
+                    }
+                }
+                diff.push("")
+                diff.push("---")
+                diff.push("")
             }
             const contents = new vscode.MarkdownString(
-                `### [Toggle ${candidate.commitId}](${commandUri})\n` +
-                `\n` +
-                `#### Diff\n` +
-                `\n` +
+                `#### [Toggle ${candidate.commitId}](${commandUri})\n` +
                 diff.join("\n")
             )
             contents.isTrusted = true;
