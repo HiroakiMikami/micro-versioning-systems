@@ -283,7 +283,7 @@ class CandidateHoverProvider implements vscode.HoverProvider {
             return null;
         }
         const candidate = candidates[this.index]
-        if (candidate.range.contains(position)) {
+        if (candidate.range.start.line <= position.line && position.line <= candidate.range.end.line) {
             const args = [document.uri.fsPath, candidate.commitId];
     
             const commandUri = vscode.Uri.parse(
