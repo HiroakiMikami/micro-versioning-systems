@@ -3,6 +3,8 @@
 !/.gitignore
 !/webpack.config.js
 !/NOTICE.md
+!/README.md
+!/images/*.png
 !/.vscode/*.json
 !/resources/*.html
 !/package.json
