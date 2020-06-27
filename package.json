@@ -13,7 +13,8 @@
     "check-format": "$(npm bin)/eslint $(find ./src -name '*.ts') $(find ./test -name '*.ts')",
     "lint": "$(npm bin)/eslint --fix $(find ./src -name '*.ts') $(find ./test -name '*.ts')",
     "watch": "$(npm bin)/concurrently --kill-others --allow-restart --restart-after 500 -r \"$(npm bin)/tsc -w -p ./\" \"webpack -w\"",
-    "test": "$(npm bin)/mocha $(find ./out/test -maxdepth 1 -name '*.js')"
+    "test": "$(npm bin)/mocha $(find ./out/test -maxdepth 1 -name '*.js')",
+    "vscode-test": "node ./out/test/vscode/runTest.js"
   },
   "repository": {
     "type": "git",
