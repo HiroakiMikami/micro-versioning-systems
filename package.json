@@ -13,7 +13,8 @@
     "check-format": "$(npm bin)/eslint $(find ./src -name '*.ts') $(find ./test -name '*.ts')",
     "lint": "$(npm bin)/eslint --fix $(find ./src -name '*.ts') $(find ./test -name '*.ts')",
     "watch": "$(npm bin)/concurrently --kill-others --allow-restart --restart-after 500 -r \"$(npm bin)/tsc -w -p ./\" \"webpack -w\"",
-    "test": "$(npm bin)/mocha $(find ./out/test -maxdepth 1 -name '*.js')"
+    "test": "$(npm bin)/mocha $(find ./out/test -maxdepth 1 -name '*.js')",
+    "vscode-test": "node ./out/test/vscode/runTest.js"
   },
   "repository": {
     "type": "git",
@@ -68,6 +69,12 @@
           "type": "number",
           "default": 1000,
           "description": "Wait time [ms] between file save and commit"
+        },
+        "microVersioningSystems.numCandidates": {
+          "scope": "window",
+          "type": "number",
+          "default": 5,
+          "description": "Number of candidates shown in the editor"
         }
       }
     },
@@ -75,6 +82,11 @@
       {
         "command": "microVersioningSystems.viewGraph",
         "title": "Show History Graph",
+        "category": "Micro-Versioning Systems"
+      },
+      {
+        "command": "microVersioningSystems.toggleCandidatesHover",
+        "title": "Toggle visibility of candidates hover",
         "category": "Micro-Versioning Systems"
       }
     ]
