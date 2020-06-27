@@ -9,6 +9,11 @@ import { GraphViewerPanel } from "./graph_viewer"
 import { evaluate } from '../score';
 import { Status } from '../common';
 
+let candidateUpdater: CandidatesUpdater = null
+let _context: vscode.ExtensionContext = null
+let codeLensProvider: CandidateCodeLensProvider = null
+const candidateHoverProviders: Array<CandidateHoverProvider> = []
+
 class State {
     private scores: ReadonlyMap<string, number>
     public constructor(public text: string,
@@ -147,7 +152,6 @@ class Candidate {
                        public readonly diff: Diff) {}
 }
 
-let candidateUpdater: CandidatesUpdater = null
 class CandidatesUpdater {
     private candidates: Array<Candidate>
     constructor() {
@@ -215,66 +219,11 @@ class CandidatesUpdater {
     }
 }
 
-let _context: vscode.ExtensionContext = null
-let codeLensProvider: CandidateCodeLensProvider = null
-class CandidateCodeLensProvider implements vscode.CodeLensProvider {
-    private _codeLenses: Array<vscode.CodeLens>;
-    public readonly onDidChangeCodeLensesEmitter = new vscode.EventEmitter<void>()
-    public readonly onDidChangeCodeLenses?: vscode.Event<void> = this.onDidChangeCodeLensesEmitter.event
-    constructor() {
-        this._codeLenses = []
-        vscode.workspace.onDidChangeConfiguration((_) => {
-            this.onDidChangeCodeLensesEmitter.fire();
-        });
-    }
-    public getCodeLenses(): ReadonlyArray<vscode.CodeLens> {
-        return this._codeLenses;
-    }
-    provideCodeLenses(document: vscode.TextDocument, token: vscode.CancellationToken): vscode.ProviderResult<vscode.CodeLens[]> {
-        createEmptyStateIfNeeded(document)
-        const state = states.get(document.uri.fsPath)
-        const scores = Array.from(state.getScores())
-        scores.sort((x, y) => {
-            if (x[1] < y[1]) {
-                return 1
-            } else if (x[1] > y[1]) {
-                return -1;
-            } else {
-                return 0;
-            }
-        })
-        let numCandidates = vscode.workspace.getConfiguration("microVersioningSystems").numCandidates
-        for (let i = candidateHoverProviders.length; i < numCandidates; ++i) {
-            const provider = new CandidateHoverProvider(i);
-            _context.subscriptions.push(vscode.languages.registerHoverProvider(
-                "*", provider))
-            candidateHoverProviders.push(provider)
-        }
-        
-        numCandidates = Math.min(numCandidates, scores.length)
-        let codeLenses = []
-        for (const candidate of candidateUpdater.getCandidates()) {
-            codeLenses.push(new vscode.CodeLens(
-                candidate.range,
-                {
-                    title: "micro-versioning-systems:toggle",
-                    command: "micro-versioning-systems.moveto",
-                    arguments: [document, candidate.range]
-                }));
-        }
-        return codeLenses;
-    }
-    resolveCodeLens?(codeLens: vscode.CodeLens, token: vscode.CancellationToken): vscode.ProviderResult<vscode.CodeLens> {
-        return codeLens
-    }
-}
-
-let candidateHoverProviders: Array<CandidateHoverProvider> = []
 let showHover = true
 class CandidateHoverProvider implements vscode.HoverProvider {
     public constructor(private index: number) {}
-    provideHover(document: vscode.TextDocument, position: vscode.Position,
-                 token: vscode.CancellationToken): vscode.ProviderResult<vscode.Hover> {
+    provideHover(document: vscode.TextDocument, position: vscode.Position
+                ): vscode.ProviderResult<vscode.Hover> {
         if (!showHover) {
             return null
         }
@@ -289,7 +238,7 @@ class CandidateHoverProvider implements vscode.HoverProvider {
             const commandUri = vscode.Uri.parse(
                 `command:micro-versioning-systems.toggle?${encodeURIComponent(JSON.stringify(args))}`
             );
-            let diff = []
+            const diff = []
             for (const delta of candidate.diff.deltas) {
                 const begin = document.positionAt(delta.offset)
                 const lineNumberStr = (line: number): string => {
@@ -342,6 +291,58 @@ class CandidateHoverProvider implements vscode.HoverProvider {
             return new vscode.Hover(contents)
         }
         return null;
+    }
+}
+
+class CandidateCodeLensProvider implements vscode.CodeLensProvider {
+    private _codeLenses: Array<vscode.CodeLens>;
+    public readonly onDidChangeCodeLensesEmitter = new vscode.EventEmitter<void>()
+    public readonly onDidChangeCodeLenses?: vscode.Event<void> = this.onDidChangeCodeLensesEmitter.event
+    constructor() {
+        this._codeLenses = []
+        vscode.workspace.onDidChangeConfiguration(() => {
+            this.onDidChangeCodeLensesEmitter.fire();
+        });
+    }
+    public getCodeLenses(): ReadonlyArray<vscode.CodeLens> {
+        return this._codeLenses;
+    }
+    provideCodeLenses(document: vscode.TextDocument): vscode.ProviderResult<vscode.CodeLens[]> {
+        createEmptyStateIfNeeded(document)
+        const state = states.get(document.uri.fsPath)
+        const scores = Array.from(state.getScores())
+        scores.sort((x, y) => {
+            if (x[1] < y[1]) {
+                return 1
+            } else if (x[1] > y[1]) {
+                return -1;
+            } else {
+                return 0;
+            }
+        })
+        let numCandidates = vscode.workspace.getConfiguration("microVersioningSystems").numCandidates
+        for (let i = candidateHoverProviders.length; i < numCandidates; ++i) {
+            const provider = new CandidateHoverProvider(i);
+            _context.subscriptions.push(vscode.languages.registerHoverProvider(
+                "*", provider))
+            candidateHoverProviders.push(provider)
+        }
+
+        numCandidates = Math.min(numCandidates, scores.length)
+        const codeLenses = []
+        for (const candidate of candidateUpdater.getCandidates()) {
+            codeLenses.push(new vscode.CodeLens(
+                candidate.range,
+                {
+                    title: "micro-versioning-systems:toggle",
+                    command: "micro-versioning-systems.moveto",
+                    arguments: [document, candidate.range]
+                }));
+        }
+        return codeLenses;
+    }
+    resolveCodeLens?(codeLens: vscode.CodeLens): vscode.ProviderResult<vscode.CodeLens> {
+        return codeLens
     }
 }
 
